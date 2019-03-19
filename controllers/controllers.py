@@ -2,11 +2,8 @@
 import json
 import math
 import logging
-import functools
 import werkzeug
 import dictfier
-from collections import Counter
-from datetime import datetime
 from odoo import http, api, _
 from odoo.http import request
 from odoo.addons.http_routing.models.ir_http import slug
@@ -14,14 +11,24 @@ from odoo.addons.http_routing.models.ir_http import slug
 
 class MifosIntegration(http.Controller):
 
-    @http.route('/api/model/', auth='public')
-    def chart_of_account(self, **kwargs):
+    @http.route('/api/model/', auth='public', methods=['GET'], csrf=False)
+    def get_model_data(self, **kwargs):
         model = kwargs["name"]
         query = json.loads(kwargs["query"])
         accounts = request.env[model].sudo().search([])
         data = dictfier.dictfy(accounts, query)
         return http.Response(
             json.dumps(data),
+            status=200,
+            mimetype='application/json'
+        )
+
+    @http.route('/api/model/', auth='public', methods=['POST'], csrf=False)
+    def post_model_data(self, **post):
+        model = post["model"]
+        request.env[model].sudo().create(post["data"])
+        return http.Response(
+            json.dumps({"status": "Success"}),
             status=200,
             mimetype='application/json'
         )
