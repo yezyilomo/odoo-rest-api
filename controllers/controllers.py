@@ -23,12 +23,8 @@ class MifosIntegration(http.Controller):
             mimetype='application/json'
         )
 
-    @http.route('/api/model/', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/model/', type='json', auth="public", methods=['POST'], website=True, csrf=False)
     def post_model_data(self, **post):
         model = post["model"]
-        request.env[model].sudo().create(post["data"])
-        return http.Response(
-            json.dumps({"status": "Success"}),
-            status=200,
-            mimetype='application/json'
-        )
+        data = request.env[model].sudo().create(post["data"])
+        return data
