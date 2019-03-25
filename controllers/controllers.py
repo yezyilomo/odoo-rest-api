@@ -28,3 +28,10 @@ class MifosIntegration(http.Controller):
         model = post["model"]
         data = request.env[model].sudo().create(post["data"])
         return data
+
+    @http.route('/api/model/', type='json', auth="public", methods=['PUT'], website=True, csrf=False)
+    def put_model_data(self, **post):
+        model = post["model"]
+        rec_id = post["id"]
+        data = request.env[model].sudo().search([("id", "=", rec_id)]).write(post["data"])
+        return data
