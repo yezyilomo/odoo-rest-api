@@ -9,9 +9,10 @@ from odoo.http import request
 from odoo.addons.http_routing.models.ir_http import slug
 
 
-class MifosIntegration(http.Controller):
-
-    @http.route('/api/model/', auth='public', methods=['GET'], csrf=False)
+class OdooAPI(http.Controller):
+    @http.route(
+        '/api/model/', 
+        auth='public', methods=['GET'], csrf=False)
     def get_model_data(self, **kwargs):
         model = kwargs["name"]
         query = json.loads(kwargs["query"])
@@ -23,15 +24,34 @@ class MifosIntegration(http.Controller):
             mimetype='application/json'
         )
 
-    @http.route('/api/model/', type='json', auth="public", methods=['POST'], website=True, csrf=False)
+    @http.route(
+        '/api/model/', 
+        type='json', auth="public", methods=['POST'], website=True, csrf=False)
     def post_model_data(self, **post):
         model = post["model"]
         data = request.env[model].sudo().create(post["data"])
-        return data
+        return data.id
 
-    @http.route('/api/model/', type='json', auth="public", methods=['PUT'], website=True, csrf=False)
+    @http.route(
+        '/api/model/', 
+        type='json', auth="public", methods=['PUT'], website=True, csrf=False)
     def put_model_data(self, **post):
         model = post["model"]
         rec_id = post["id"]
-        data = request.env[model].sudo().search([("id", "=", rec_id)]).write(post["data"])
-        return data
+        rec = request.env[model].sudo().search([("id", "=", rec_id)])
+        if rec.exists():
+            return rec.write(post["data"])
+        else:
+            return False
+
+    @http.route(
+        '/api/model/', 
+        type='json', auth="public", methods=['DELETE'], website=True, csrf=False)
+    def delete_model_data(self, **post):
+        model = post["model"]
+        rec_id = post["id"]
+        rec = request.env[model].sudo().search([("id", "=", rec_id)])
+        if rec.exists():
+            return rec.unlink()
+        else:
+            return False
