@@ -3,11 +3,17 @@ import json
 import math
 import logging
 import werkzeug
-import dictfier
+
 from odoo import http, api, _
 from odoo.http import request
 from odoo.addons.http_routing.models.ir_http import slug
 
+_logger = logging.getLogger(__name__)
+
+try:
+    import dictfier
+except ImportError as err:
+    _logger.debug(err)
 
 class OdooAPI(http.Controller):
     @http.route(
