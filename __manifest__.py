@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "mifos_integration",
+    'name': "Odoo API",
 
     'summary': """
-        Short (1 phrase/line) summary of the module's purpose, used as
-        subtitle on modules listing or apps.openerp.com""",
+        Odoo REST API""",
 
     'description': """
-        Long description of module's purpose
+        Odoo REST API
     """,
 
     'author': "My Company",
