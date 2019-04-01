@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Odoo API",
+    'name': "Odoo REST API",
 
     'summary': """
         Odoo REST API""",
