@@ -1,1 +1,1 @@
-#Mifos Integration Module
+# Odoo REST API
