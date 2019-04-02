@@ -15,23 +15,61 @@ try:
 except ImportError as err:
     _logger.debug(err)
 
+
 class OdooAPI(http.Controller):
     @http.route(
-        '/api/model/', 
+        '/api/', 
         auth='public', methods=['GET'], csrf=False)
-    def get_model_data(self, **kwargs):
-        model = kwargs["name"]
-        query = json.loads(kwargs["query"])
-        accounts = request.env[model].sudo().search([])
-        data = dictfier.dictfy(accounts, query)
+    def get_model_data(self, **params):
+        model = params["model"]
+        query = json.loads(params["query"])
+        
+        if "filter" in params:
+            filters = json.loads(params["filter"])
+            records = request.env[model].sudo().search(filters)
+        else:
+            records = request.env[model].sudo().search([])
+
+        prev_page = None
+        next_page = None
+        total_page_number = 1
+
+        if "page_size" in params:
+            page_size = int(params["page_size"])
+            count = len(records)
+            total_page_number = math.ceil(count/page_size)
+
+            if "page" in params:
+                page_number = int(params["page"])
+            else:
+                page_number = 1  # Default page Number
+
+            records = records[page_size*(page_number-1):page_number*page_size]
+            next_page = page_number+1 if 0<page_number+1 <= total_page_number else None
+            prev_page = page_number-1 if 0<page_number-1 <= total_page_number else None
+
+        if "limit" in params:
+            limit = int(params["limit"])
+            records = records[0:limit]
+        data = dictfier.dictfy(records, query)
+
+        res = {
+            "jsonrpc": "2.0",
+            "id": None,
+            "count": len(records),
+            "prev": prev_page,
+            "next": next_page,
+            "total_pages": total_page_number,
+            "result": data
+        }
         return http.Response(
-            json.dumps(data),
+            json.dumps(res),
             status=200,
             mimetype='application/json'
         )
 
     @http.route(
-        '/api/model/', 
+        '/api/', 
         type='json', auth="public", methods=['POST'], website=True, csrf=False)
     def post_model_data(self, **post):
         model = post["model"]
@@ -39,25 +77,35 @@ class OdooAPI(http.Controller):
         return data.id
 
     @http.route(
-        '/api/model/', 
+        '/api/', 
         type='json', auth="public", methods=['PUT'], website=True, csrf=False)
     def put_model_data(self, **post):
         model = post["model"]
-        rec_id = post["id"]
-        rec = request.env[model].sudo().search([("id", "=", rec_id)])
+        filters = post["filter"]
+        rec = request.env[model].sudo().search(filters)
         if rec.exists():
             return rec.write(post["data"])
         else:
             return False
 
     @http.route(
-        '/api/model/', 
-        type='json', auth="public", methods=['DELETE'], website=True, csrf=False)
+        '/api/', 
+        type='http', auth="public", methods=['DELETE'], website=True, csrf=False)
     def delete_model_data(self, **post):
         model = post["model"]
-        rec_id = post["id"]
-        rec = request.env[model].sudo().search([("id", "=", rec_id)])
+        filters = json.loads(post["filter"])
+        rec = request.env[model].sudo().search(filters)
         if rec.exists():
-            return rec.unlink()
+            is_deleted = rec.unlink()
         else:
-            return False
+            is_deleted = False
+        res = {
+            "jsonrpc": "2.0",
+            "id": None,
+            "result": json.dumps(is_deleted)
+        }
+        return http.Response(
+            json.dumps(res),
+            status=200,
+            mimetype='application/json'
+        )
