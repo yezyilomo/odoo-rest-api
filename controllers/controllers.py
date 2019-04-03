@@ -86,11 +86,14 @@ class OdooAPI(http.Controller):
         model = post["model"]
         filters = post["filter"]
         rec = request.env[model].sudo().search(filters)
+
+        if "context" in post:
+            rec = request.env[model].with_context(**post["context"]).sudo().search(filters)
+        else:
+            rec = request.env[model].sudo().search(filters)
+
         if rec.exists():
-            if "context" in post:
-                return rec.with_context(**post["context"]).write(post["data"])
-            else:
-                return rec.write(post["data"])
+            return rec.write(post["data"])
         else:
             return False
 
