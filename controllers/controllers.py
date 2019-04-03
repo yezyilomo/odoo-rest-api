@@ -73,7 +73,10 @@ class OdooAPI(http.Controller):
         type='json', auth="public", methods=['POST'], website=True, csrf=False)
     def post_model_data(self, **post):
         model = post["model"]
-        data = request.env[model].sudo().create(post["data"])
+        if "context" in post:
+            data = request.env[model].with_context(**post["context"]).sudo().create(post["data"])
+        else:
+            data = request.env[model].sudo().create(post["data"])
         return data.id
 
     @http.route(
@@ -84,7 +87,10 @@ class OdooAPI(http.Controller):
         filters = post["filter"]
         rec = request.env[model].sudo().search(filters)
         if rec.exists():
-            return rec.write(post["data"])
+            if "context" in post:
+                return rec.with_context(**post["context"]).write(post["data"])
+            else:
+                return rec.write(post["data"])
         else:
             return False
 
