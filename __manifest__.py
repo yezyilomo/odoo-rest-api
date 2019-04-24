@@ -9,7 +9,7 @@
         Odoo REST API
     """,
 
-    'author': "My Company",
+    'author': "Yezileli Ilomo",
     'website': "http://www.singo.africa",
 
     # Categories can be used to filter modules in modules listing
