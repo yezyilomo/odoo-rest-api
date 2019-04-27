@@ -2,6 +2,7 @@
 import json
 import math
 import logging
+import datetime
 import werkzeug
 
 from odoo import http, api, _
@@ -15,6 +16,31 @@ try:
 except ImportError as err:
     _logger.debug(err)
 
+import pprint
+def flat_obj(obj, parent_obj, field_name):
+    if isinstance(obj, datetime.datetime):
+        return obj.strftime("%Y-%m-%d-%H-%M")
+    if isinstance(obj, datetime.date):
+        return obj.strftime("%Y-%m-%d")
+    if isinstance(obj, datetime.time):
+        return obj.strftime("%H-%M-%S")
+
+    if hasattr(parent_obj, "fields_get"):
+        field_type = parent_obj.fields_get(field_name)[field_name]["type"]
+        if field_type == "many2one":
+            return obj.id
+        if field_type in ["one2many", "many2many"]:
+            return [rec.id for rec in obj]
+        if field_type == "binary" and obj:
+            return obj.decode("utf-8")
+  
+    return obj
+
+def nested_flat_obj(obj, parent_obj):
+    return obj
+
+def nested_iter_obj(obj, parent_obj):
+    return obj
 
 class OdooAPI(http.Controller):
     @http.route(
@@ -22,13 +48,24 @@ class OdooAPI(http.Controller):
         auth='public', methods=['GET'], csrf=False)
     def get_model_data(self, **params):
         model = params["model"]
-        query = json.loads(params["query"])
+
+        records = request.env[model].sudo().search([])
+
+        if "query" in params:
+            query = json.loads(params["query"])
+        else:
+            query = [records.fields_get_keys()]
+        
+        if "exclude" in params:
+            exclude = json.loads(params["exclude"])
+            for field in exclude:
+                if field in query[0]:
+                    field_to_exclude= query[0].index(field)
+                    query[0].pop(field_to_exclude)
         
         if "filter" in params:
             filters = json.loads(params["filter"])
             records = request.env[model].sudo().search(filters)
-        else:
-            records = request.env[model].sudo().search([])
 
         prev_page = None
         next_page = None
@@ -51,7 +88,13 @@ class OdooAPI(http.Controller):
         if "limit" in params:
             limit = int(params["limit"])
             records = records[0:limit]
-        data = dictfier.dictfy(records, query)
+        data = dictfier.dictfy(
+            records, 
+            query,
+            flat_obj=flat_obj,
+            nested_flat_obj=nested_flat_obj,
+            nested_iter_obj=nested_iter_obj
+        )
 
         res = {
             "jsonrpc": "2.0",
