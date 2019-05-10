@@ -12,7 +12,7 @@ Model records:
 ### Parameters 
 * query (optional):
 
-   This parameter is used to dynamically select fields to include on the response. For example if I want to select ```id``` and ```name``` fields from ```res.users``` model here is how I'd do it.
+   This parameter is used to dynamically select fields to include on a response. For example if we want to select ```id``` and ```name``` fields from ```res.users``` model here is how we would do it.
 
    ```GET /api/res.users/?query=[["id", "name"]]```
    ```json
@@ -34,10 +34,10 @@ Model records:
         ]
     }
    ```
-   Note: query parameter is a list of list i.e query=[[...]] this notation means that we expect multiple records(array of records)
+   Note: query parameter is a list of list of fields i.e ```query=[[field1, field2, ...]]``` this notation means that we expect multiple records(array of records) from model specified.
    
 
-   For nested records, for example if I want to select ```id```, ```name``` and ```company_id``` fields from ```res.users``` model, but under ```company_id``` I want to select ```name``` field only. here is how I would do it.
+   For nested records, for example if we want to select ```id```, ```name``` and ```company_id``` fields from ```res.users``` model, but under ```company_id``` we want to select ```name``` field only. here is how we would do it.
 
    ```GET /api/res.users/?query=[["id", "name", {"company_id": ["name"]}]]```
    ```json
@@ -66,7 +66,7 @@ Model records:
     }
    ```
 
-   For nested iterable records, for example if I want to select ```id```, ```name``` and ```related_products``` fields from ```product.template``` model, but under ```related_products``` I want to select ```name``` field only. here is how I would do it.
+   For nested iterable records, for example if we want to select ```id```, ```name``` and ```related_products``` fields from ```product.template``` model, but under ```related_products``` we want to select ```name``` field only. here is how we would do it.
 
    ```GET /api/product.template/?query=[["id", "name", {"related_products": [["name"]]}]]```
    ```json
@@ -98,12 +98,14 @@ Model records:
    }
    ```
 
-   Note: Again ```related_products``` parameter is a list of list i.e {"related_products": [["name"]]} just like in ```query``` this notation means that we expect multiple records(array of records) from ```related_products``` field. If you don't specify query parameter all fields will be returned.
+   Note: Again ```related_products``` parameter is a list of list of fields i.e ```{"related_products": [["name"]]}``` just like in ```query``` this notation means that we are expecting multiple records(array of records) from ```related_products``` field. 
+
+   **If you don't specify query parameter all fields will be returned.**
 
 
 * filter (optional):
 
-    This is used to filter out data returned. For example if I want to get all products with id ranging from 60 to 70, here's how I'do it.
+    This is used to filter out data returned. For example if we want to get all products with id ranging from 60 to 70, here's how we would do it.
 
     ```GET /api/product.template/?query=[["id", "name"]]&filter=[["id", ">", 60], ["id", "<", 70]]```
     ```json
@@ -128,7 +130,7 @@ Model records:
 
 * exclude (optional):
 
-    This is used to exclude fields fetched. For example in above case if I want to exclude name field, here is how
+    This is used to exclude fields fetched. For example in above case if we want to exclude name field, here is how
 
     ```GET /api/product.template/?query=[["id", "name"]]&filter=[["id", ">", 60], ["id", "<", 70]]&exclude=["id"]```
     ```json
