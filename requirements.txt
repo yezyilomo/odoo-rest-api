@@ -1,1 +1,1 @@
-dictfier
+dictfier==1.4.0
