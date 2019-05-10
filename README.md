@@ -6,10 +6,10 @@ Allowed HTTP methods
 
 ## 1. GET
 
-Model records: 
+### Model records: 
 
 ```GET /api/{model}/```
-### Parameters 
+#### Parameters 
 * query (optional):
 
    This parameter is used to dynamically select fields to include on a response. For example if we want to select ```id``` and ```name``` fields from ```res.users``` model here is how we would do it.
@@ -193,10 +193,10 @@ Model records:
     }
     ```
 
-Model record:  
+### Model record:  
 
 ```GET /api/{model}/{id}```
-### Parameters
+#### Parameters
 * query (optional)
 
     Here query parameter works exactly the same as explained before except it selects fields on a single record. For example
@@ -225,9 +225,9 @@ Model record:
 ## 2. POST
 
 ```POST /api/{model}/```
-### Headers
+#### Headers
 * Content-Type: application/json
-### Parameters 
+#### Parameters 
 * data (mandatory)
 
     This is used to pass data to be posted. For example
@@ -277,12 +277,12 @@ Model record:
 
 ## 3. PUT
 
-Model records: 
+### Model records: 
 
 ```PUT /api/{model}/```
-### Headers
+#### Headers
 * Content-Type: application/json
-### Parameters
+#### Parameters
 * data (mandatory):
 
     This is used to pass data to update, it works with filter parameter, See example below
@@ -373,12 +373,12 @@ Model records:
     }
     ```
 
-Model record: 
+### Model record: 
 
 ```PUT /api/{model}/{id}```
-### Headers
+#### Headers
 * Content-Type: application/json
-### Parameters
+#### Parameters
 * data (mandatory)
 * context (optional)
 * PUT operation(push, pop, delete) (optional)
@@ -404,10 +404,10 @@ Request Body
 
 ## 4. DELETE
 
-Model records: 
+### Model records: 
 
 ```DELETE /api/{model}/```
-### Parameters
+#### Parameters
 * filter (mandatory):
 
     This is used to filter data to delete. For example
@@ -423,10 +423,10 @@ Model records:
     Note: If the result is true it means success and if false or otherwise it means there was an error during deletion.
 
 
-Model records: 
+### Model records: 
 
 ```DELETE /api/{model}/{id}```
-### Parameters
+#### Parameters
 This takes no parameter and we don't have filter parameter because ```id``` of record to be deleted is passed on URL as ```{id}```. Example to give us an idea of how this works.
 
 ```DELETE /api/product.template/95/```
