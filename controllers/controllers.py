@@ -66,6 +66,7 @@ class OdooAPI(http.Controller):
         prev_page = None
         next_page = None
         total_page_number = 1
+        current_page = 1
 
         if "page_size" in params:
             page_size = int(params["page_size"])
@@ -73,17 +74,17 @@ class OdooAPI(http.Controller):
             total_page_number = math.ceil(count/page_size)
 
             if "page" in params:
-                page_number = int(params["page"])
+                current_page = int(params["page"])
             else:
-                page_number = 1  # Default page Number
-            start = page_size*(page_number-1)
-            stop = page_number*page_size
+                current_page = 1  # Default page Number
+            start = page_size*(current_page-1)
+            stop = current_page*page_size
             records = records[start:stop]
-            next_page = page_number+1 \
-                        if 0 < page_number + 1 <= total_page_number \
+            next_page = current_page+1 \
+                        if 0 < current_page + 1 <= total_page_number \
                         else None
-            prev_page = page_number-1 \
-                        if 0 < page_number - 1 <= total_page_number \
+            prev_page = current_page-1 \
+                        if 0 < current_page - 1 <= total_page_number \
                         else None
 
         if "limit" in params:
@@ -98,10 +99,9 @@ class OdooAPI(http.Controller):
         )
 
         res = {
-            "jsonrpc": "2.0",
-            "id": None,
             "count": len(records),
             "prev": prev_page,
+            "current": current_page,
             "next": next_page,
             "total_pages": total_page_number,
             "result": data
@@ -125,9 +125,9 @@ class OdooAPI(http.Controller):
         if "exclude" in params:
             exclude = json.loads(params["exclude"])
             for field in exclude:
-                if field in query[0]:
-                    field_to_exclude= query[0].index(field)
-                    query[0].pop(field_to_exclude)
+                if field in query:
+                    field_to_exclude = query.index(field)
+                    query.pop(field_to_exclude)
 
         record = records.browse(rec_id).ensure_one()
         data = dictfier.dictfy(
@@ -148,18 +148,87 @@ class OdooAPI(http.Controller):
         type='json', auth="public", 
         methods=['POST'], website=True, csrf=False)
     def post_model_data(self, model, **post):
+        try:
+            data = post['data']
+        except KeyError:
+            _logger.exception(
+                "'data' parameter is not found on POST request"
+            )
+
         if "context" in post:
-            data = request.env[model].with_context(**post["context"])\
-                   .sudo().create(post["data"])
+            context = post["context"]
+            record = request.env[model].with_context(**context)\
+                     .sudo().create(data)
         else:
-            data = request.env[model].sudo().create(post["data"])
-        return data.id
+            record = request.env[model].sudo().create(data)
+        return record.id
 
     @http.route(
-        '/api/<string:model>', 
+        '/api/<string:model>/<int:rec_id>/', 
         type='json', auth="public", 
         methods=['PUT'], website=True, csrf=False)
-    def put_model_data(self, model, **post):
+    def put_model_record(self, model, rec_id, **post):
+        try:
+            data = post['data']
+        except KeyError:
+            _logger.exception(
+                "'data' parameter is not found on PUT request"
+            )
+
+        if "context" in post:
+            rec = request.env[model].with_context(**post["context"])\
+                  .sudo().browse(rec_id).ensure_one()
+        else:
+            rec = request.env[model].sudo().browse(rec_id).ensure_one()
+
+        for field in data:
+            if isinstance(data[field], dict):
+                operations = []
+                for operation in data[field]:
+                    if operation == "push":
+                        operations.extend(
+                            (4, rec_id, _) 
+                            for rec_id 
+                            in data[field].get("push")
+                        )
+                    elif operation == "pop":
+                        operations.extend(
+                            (3, rec_id, _) 
+                            for rec_id 
+                            in data[field].get("pop")
+                        )
+                    elif operation == "delete":
+                        operations.extend(
+                            (2, rec_id, _) 
+                            for rec_id 
+                            in data[field].get("delete")
+                        )
+                    else:
+                        data[field].pop(operation)  # Invalid operation
+
+                data[field] = operations
+            elif isinstance(data[field], list):
+                data[field] = [(6, _, data[field])]  # Replace operation
+            else:
+                pass
+
+        if rec.exists():
+            return rec.write(data)
+        else:
+            return False
+
+    @http.route(
+        '/api/<string:model>/', 
+        type='json', auth="public", 
+        methods=['PUT'], website=True, csrf=False)
+    def put_model_records(self, model, **post):
+        try:
+            data = post['data']
+        except KeyError:
+            _logger.exception(
+                "'data' parameter is not found on PUT request"
+            )
+
         filters = post["filter"]
         rec = request.env[model].sudo().search(filters)
 
@@ -169,25 +238,53 @@ class OdooAPI(http.Controller):
         else:
             rec = request.env[model].sudo().search(filters)
 
+        for field in data:
+            if isinstance(data[field], dict):
+                operations = []
+                for operation in data[field]:
+                    if operation == "push":
+                        operations.extend(
+                            (4, rec_id, _) 
+                            for rec_id 
+                            in data[field].get("push")
+                        )
+                    elif operation == "pop":
+                        operations.extend(
+                            (3, rec_id, _) 
+                            for rec_id 
+                            in data[field].get("pop")
+                        )
+                    elif operation == "delete":
+                        operations.extend(
+                            (2, rec_id, _) 
+                            for rec_id in 
+                            data[field].get("delete")
+                        )
+                    else:
+                        pass  # Invalid operation
+
+                data[field] = operations
+            elif isinstance(data[field], list):
+                data[field] = [(6, _, data[field])]  # Replace operation
+            else:
+                pass
+
         if rec.exists():
-            return rec.write(post["data"])
+            return rec.write(data)
         else:
             return False
 
     @http.route(
-        '/api/<string:model>/', 
+        '/api/<string:model>/<int:rec_id>/', 
         type='http', auth="public", 
         methods=['DELETE'], website=True, csrf=False)
-    def delete_model_data(self, model, **post):
-        filters = json.loads(post["filter"])
-        rec = request.env[model].sudo().search(filters)
+    def delete_model_record(self, model,  rec_id, **post):
+        rec = request.env[model].sudo().browse(rec_id).ensure_one()
         if rec.exists():
             is_deleted = rec.unlink()
         else:
             is_deleted = False
         res = {
-            "jsonrpc": "2.0",
-            "id": None,
             "result": json.dumps(is_deleted)
         }
         return http.Response(
@@ -195,3 +292,39 @@ class OdooAPI(http.Controller):
             status=200,
             mimetype='application/json'
         )
+
+    @http.route(
+        '/api/<string:model>/', 
+        type='http', auth="public", 
+        methods=['DELETE'], website=True, csrf=False)
+    def delete_model_records(self, model, **post):
+        filters = json.loads(post["filter"])
+        rec = request.env[model].sudo().search(filters)
+        if rec.exists():
+            is_deleted = rec.unlink()
+        else:
+            is_deleted = False
+        res = {
+            "result": json.dumps(is_deleted)
+        }
+        return http.Response(
+            json.dumps(res),
+            status=200,
+            mimetype='application/json'
+        )
+
+
+    @http.route(
+        '/api/<string:model>/<int:rec_id>/<string:field>', 
+        type='http', auth="public", 
+        methods=['GET'], website=True, csrf=False)
+    def get_binary_record(self, model,  rec_id, field, **post):
+        rec = request.env[model].sudo().browse(rec_id).ensure_one()
+        if rec.exists():
+            src = getattr(rec, field).decode("utf-8")
+        else:
+            src = False
+        return http.Response(
+            src
+        )
+
