@@ -3,8 +3,7 @@ This is a module which expose Odoo as a REST API
 
 ## Installing
 * Download this module and put it to your Odoo addons directory
-* Install dictfier with  `pip install dictfier` 
-Or you can use requirements.txt file on module's directory as `pip install -r requirements.txt`
+* Install requirements with `pip install -r requirements.txt`
 
 
 ## Getting Started
