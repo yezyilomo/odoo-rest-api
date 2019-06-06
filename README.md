@@ -1,8 +1,33 @@
 # Odoo REST API
-
 This is a module which expose Odoo as a REST API 
 
-Allowed HTTP methods 
+## Installing
+* Download this module and put it to your Odoo addons directory
+* Install dictfier with  `pip install dictfier` 
+Or you can use requirements.txt file on module's directory as `pip install -r requirements.txt`
+
+
+## Getting Started
+Before making any request make sure to login and obtain session_id(This will act as your API key), Send all your requests with session_id as a parameter for authentication. Here is how to obtain it, 
+Send a POST request with JSON body as shown below.
+
+```POST /web/session/authenticate```
+
+Request Body
+```json
+{
+    "jsonrpc": "2.0",
+    "params": {
+        "login": "your@email.com",
+        "password": "your_password",
+        "db": "database_name"
+    }
+}
+```
+Obtain session_id from a cookie created(Not the one from a response). It'll be a long string something like "62dd55784cb0b1f69c584f7dc1eea6f587e32570", Use this as a parameter to all requests.
+
+
+## Allowed HTTP methods 
 
 ## 1. GET
 
@@ -336,7 +361,7 @@ Allowed HTTP methods
     ```
 
 * PUT operation (optional):
-    This is only applied to ```one2many``` and ```many2many``` fields. The concept is sometimes you might not want to replace all records on either ```one2many``` or ```many2many``` fields, instead you might want to add other records or remove some records, this is where put operations comes in place. Thre are basically three PUT operation which are push, pop and delete. 
+    This is only applied to ```one2many``` and ```many2many``` fields. The concept is sometimes you might not want to replace all records on either ```one2many``` or ```many2many``` fields, instead you might want to add other records or remove some records, this is where put operations comes in place. Thre are basically three PUT operations which are push, pop and delete. 
     * push is used to add/append other records to existing linked records
     * pop is used to remove/unlink some records from the record being updated but it doesn't delete them on the system
     * delete is used to remove/unlink and delete records permanently on the system
