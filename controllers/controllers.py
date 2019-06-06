@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
+import re
 import json
 import math
 import logging
 import datetime
-import werkzeug
 
-from odoo import http, api, _
+from odoo import http
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
@@ -14,6 +14,7 @@ try:
     import dictfier
 except ImportError as err:
     _logger.debug(err)
+
 
 def flat_obj(obj, parent_obj, field_name):
     if isinstance(obj, datetime.datetime):
@@ -42,16 +43,23 @@ def nested_iter_obj(obj, parent_obj):
     return obj
 
 class OdooAPI(http.Controller):
+    #@http.route('/api/auth', type='json', auth='public', methods=["POST"], csrf=False)
+    #def authenticate(self, db, login, password):
+    #    request.session.authenticate(db, login, password)
+    #    return request.env['ir.http'].session_info()
+
     @http.route(
         '/api/<string:model>', 
-        auth='public', methods=['GET'], csrf=False)
+        auth='user', methods=['GET'], csrf=False)
     def get_model_data(self, model, **params):
-        records = request.env[model].sudo().search([])
+        records = request.env[model].search([])
         if "query" in params:
             query = json.loads(params["query"])
+            #raw_query = parse_query(params["query"])
+            #query = [get_formatted_query(raw_query, records)]
         else:
             query = [records.fields_get_keys()]
-        
+
         if "exclude" in params:
             exclude = json.loads(params["exclude"])
             for field in exclude:
@@ -61,7 +69,7 @@ class OdooAPI(http.Controller):
         
         if "filter" in params:
             filters = json.loads(params["filter"])
-            records = request.env[model].sudo().search(filters)
+            records = request.env[model].search(filters)
 
         prev_page = None
         next_page = None
@@ -90,8 +98,9 @@ class OdooAPI(http.Controller):
         if "limit" in params:
             limit = int(params["limit"])
             records = records[0:limit]
+
         data = dictfier.dictfy(
-            records, 
+            records,
             query,
             flat_obj=flat_obj,
             nested_flat_obj=nested_flat_obj,
@@ -114,9 +123,9 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/<int:rec_id>',
-        auth='public', methods=['GET'], csrf=False)
+        auth='user', methods=['GET'], csrf=False)
     def get_model_rec(self, model, rec_id, **params):
-        records = request.env[model].sudo().search([])
+        records = request.env[model].search([])
         if "query" in params:
             query = json.loads(params["query"])
         else:
@@ -145,7 +154,7 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/', 
-        type='json', auth="public", 
+        type='json', auth="user", 
         methods=['POST'], website=True, csrf=False)
     def post_model_data(self, model, **post):
         try:
@@ -158,14 +167,14 @@ class OdooAPI(http.Controller):
         if "context" in post:
             context = post["context"]
             record = request.env[model].with_context(**context)\
-                     .sudo().create(data)
+                     .create(data)
         else:
-            record = request.env[model].sudo().create(data)
+            record = request.env[model].create(data)
         return record.id
 
     @http.route(
         '/api/<string:model>/<int:rec_id>/', 
-        type='json', auth="public", 
+        type='json', auth="user", 
         methods=['PUT'], website=True, csrf=False)
     def put_model_record(self, model, rec_id, **post):
         try:
@@ -177,9 +186,9 @@ class OdooAPI(http.Controller):
 
         if "context" in post:
             rec = request.env[model].with_context(**post["context"])\
-                  .sudo().browse(rec_id).ensure_one()
+                  .browse(rec_id).ensure_one()
         else:
-            rec = request.env[model].sudo().browse(rec_id).ensure_one()
+            rec = request.env[model].browse(rec_id).ensure_one()
 
         for field in data:
             if isinstance(data[field], dict):
@@ -219,7 +228,7 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/', 
-        type='json', auth="public", 
+        type='json', auth="user", 
         methods=['PUT'], website=True, csrf=False)
     def put_model_records(self, model, **post):
         try:
@@ -230,13 +239,13 @@ class OdooAPI(http.Controller):
             )
 
         filters = post["filter"]
-        rec = request.env[model].sudo().search(filters)
+        rec = request.env[model].search(filters)
 
         if "context" in post:
             rec = request.env[model].with_context(**post["context"])\
-                  .sudo().search(filters)
+                  .search(filters)
         else:
-            rec = request.env[model].sudo().search(filters)
+            rec = request.env[model].search(filters)
 
         for field in data:
             if isinstance(data[field], dict):
@@ -276,10 +285,10 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/<int:rec_id>/', 
-        type='http', auth="public", 
+        type='http', auth="user", 
         methods=['DELETE'], website=True, csrf=False)
     def delete_model_record(self, model,  rec_id, **post):
-        rec = request.env[model].sudo().browse(rec_id).ensure_one()
+        rec = request.env[model].browse(rec_id).ensure_one()
         if rec.exists():
             is_deleted = rec.unlink()
         else:
@@ -295,11 +304,11 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/', 
-        type='http', auth="public", 
+        type='http', auth="user", 
         methods=['DELETE'], website=True, csrf=False)
     def delete_model_records(self, model, **post):
         filters = json.loads(post["filter"])
-        rec = request.env[model].sudo().search(filters)
+        rec = request.env[model].search(filters)
         if rec.exists():
             is_deleted = rec.unlink()
         else:
@@ -316,10 +325,10 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/<int:rec_id>/<string:field>', 
-        type='http', auth="public", 
+        type='http', auth="user", 
         methods=['GET'], website=True, csrf=False)
     def get_binary_record(self, model,  rec_id, field, **post):
-        rec = request.env[model].sudo().browse(rec_id).ensure_one()
+        rec = request.env[model].browse(rec_id).ensure_one()
         if rec.exists():
             src = getattr(rec, field).decode("utf-8")
         else:
