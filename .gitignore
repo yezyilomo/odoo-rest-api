@@ -123,6 +123,7 @@ dmypy.json
 .venv/
 
 ### VisualStudioCode ###
+XDG_CACHE_HOME
 .vscode/
 !.vscode/settings.json
 !.vscode/tasks.json
