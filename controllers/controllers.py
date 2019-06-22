@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import re
 import json
 import math
 import logging
@@ -43,11 +42,6 @@ def nested_iter_obj(obj, parent_obj):
     return obj
 
 class OdooAPI(http.Controller):
-    #@http.route('/api/auth', type='json', auth='public', methods=["POST"], csrf=False)
-    #def authenticate(self, db, login, password):
-    #    request.session.authenticate(db, login, password)
-    #    return request.env['ir.http'].session_info()
-
     @http.route(
         '/api/<string:model>', 
         auth='user', methods=['GET'], csrf=False)
@@ -55,8 +49,6 @@ class OdooAPI(http.Controller):
         records = request.env[model].search([])
         if "query" in params:
             query = json.loads(params["query"])
-            #raw_query = parse_query(params["query"])
-            #query = [get_formatted_query(raw_query, records)]
         else:
             query = [records.fields_get_keys()]
 
