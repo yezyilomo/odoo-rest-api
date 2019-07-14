@@ -2,6 +2,7 @@
 import json
 import math
 import logging
+import requests
 import datetime
 
 from odoo import http
@@ -42,6 +43,42 @@ def nested_iter_obj(obj, parent_obj):
     return obj
 
 class OdooAPI(http.Controller):
+    @http.route('/api/auth/', 
+        type='json', auth='public',
+        methods=["POST"], csrf=False)
+    def authenticate(self, *args, **post):
+        db = post["db"]
+        login = post["login"]
+        password = post["password"]
+
+        url_root = request.httprequest.url_root
+        AUTH_URL = f"{url_root}web/session/authenticate/"
+        
+        headers = {'Content-type': 'application/json'}
+            
+        data = {
+            "jsonrpc": "2.0",
+            "params": {
+                "login": login,
+                "password": password,
+                "db": db
+            }
+        }
+        
+        res = requests.post(
+            AUTH_URL, 
+            data=json.dumps(data), 
+            headers=headers
+        )
+        
+        try:
+            session_id = res.cookies["session_id"]
+            user = json.loads(res.text)
+            user["result"]["session_id"]= session_id
+        except Exception:
+            return "Invalid credentials."
+        return user["result"]
+
     @http.route(
         '/api/<string:model>', 
         auth='user', methods=['GET'], csrf=False)
