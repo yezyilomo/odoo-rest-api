@@ -10,7 +10,7 @@ This is a module which expose Odoo as a REST API
 Before making any request make sure to login and obtain session_id(This will act as your API key), Send all your requests with session_id as a parameter for authentication. Here is how to obtain it, 
 Send a POST request with JSON body as shown below.
 
-`POST /web/session/authenticate`
+`POST /web/session/authenticate/`
 
 Request Body
 
@@ -26,6 +26,23 @@ Request Body
 ```
 
 Obtain session_id from a cookie created(Not the one from a response). It'll be a long string something like "62dd55784cb0b1f69c584f7dc1eea6f587e32570", Use this as a parameter to all requests.
+
+If you have set the default database then you can simply use `/auth` route to do authentication as 
+
+`POST /auth/`
+
+Request Body
+
+```json
+{
+    "params": {
+        "login": "your@email.com",
+        "password": "your_password",
+    }
+}
+```
+
+Use session_id from the response as a parameter to all requests.
 
 
 ## Allowed HTTP methods 
