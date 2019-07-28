@@ -43,11 +43,11 @@ def nested_iter_obj(obj, parent_obj):
     return obj
 
 class OdooAPI(http.Controller):
-    @http.route('/api/auth/', 
+    @http.route('/auth/', 
         type='json', auth='public',
-        methods=["POST"], csrf=False)
+        methods=["POST"], csrf=False, sitemap=False)
     def authenticate(self, *args, **post):
-        db = post["db"]
+        db = request.env.cr.db
         login = post["login"]
         password = post["password"]
 
