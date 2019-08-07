@@ -79,6 +79,34 @@ class OdooAPI(http.Controller):
             return "Invalid credentials."
         return user["result"]
 
+    @http.route('/object/<string:model>/<string:function>', 
+        type='json', auth='public',
+        methods=["POST"], csrf=False, sitemap=False)
+    def call_model_function(self, model, function, **post):
+        args = []
+        kwargs = {}
+        if "args" in post:
+            args = post["args"]
+        if "kwargs" in post:
+            kwargs = post["kwargs"]
+        model = request.env[model]
+        result = getattr(model, function)(*args, **kwargs)
+        return result
+
+    @http.route('/object/<string:model>/<int:rec_id>/<string:function>', 
+        type='json', auth='public',
+        methods=["POST"], csrf=False, sitemap=False)
+    def call_obj_function(self, model, rec_id, function, **post):
+        args = []
+        kwargs = {}
+        if "args" in post:
+            args = post["args"]
+        if "kwargs" in post:
+            kwargs = post["kwargs"]
+        obj = request.env[model].browse(rec_id).ensure_one()
+        result = getattr(obj, function)(*args, **kwargs)
+        return result
+
     @http.route(
         '/api/<string:model>', 
         auth='user', methods=['GET'], csrf=False)
