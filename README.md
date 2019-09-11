@@ -38,6 +38,7 @@ Request Body
     "params": {
         "login": "your@email.com",
         "password": "your_password",
+        "db": "your_db_name"
     }
 }
 ```
