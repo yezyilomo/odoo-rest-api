@@ -47,9 +47,20 @@ class OdooAPI(http.Controller):
         type='json', auth='public',
         methods=["POST"], csrf=False, sitemap=False)
     def authenticate(self, *args, **post):
-        db = request.env.cr.db
         login = post["login"]
         password = post["password"]
+        try:
+            db = request.env.cr.db
+        except Exception:
+            if "db" in post:
+                db = post["db"]
+            else:
+                msg = (
+                    "Looks like db is not properly configured, "
+                    "you can pass its name to `db` parameter to "
+                    "avoid this error!."
+                )
+                return {"Error": msg}
 
         url_root = request.httprequest.url_root
         AUTH_URL = f"{url_root}web/session/authenticate/"
