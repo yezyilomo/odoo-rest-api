@@ -47,9 +47,20 @@ class OdooAPI(http.Controller):
         type='json', auth='public',
         methods=["POST"], csrf=False, sitemap=False)
     def authenticate(self, *args, **post):
-        db = request.env.cr.db
         login = post["login"]
         password = post["password"]
+        try:
+            db = request.env.cr.db
+        except Exception:
+            if "db" in post:
+                db = post["db"]
+            else:
+                msg = (
+                    "Looks like db is not properly configured, "
+                    "you can pass its name to `db` parameter to "
+                    "avoid this error!."
+                )
+                return {"Error": msg}
 
         url_root = request.httprequest.url_root
         AUTH_URL = f"{url_root}web/session/authenticate/"
@@ -78,6 +89,34 @@ class OdooAPI(http.Controller):
         except Exception:
             return "Invalid credentials."
         return user["result"]
+
+    @http.route('/object/<string:model>/<string:function>', 
+        type='json', auth='public',
+        methods=["POST"], csrf=False, sitemap=False)
+    def call_model_function(self, model, function, **post):
+        args = []
+        kwargs = {}
+        if "args" in post:
+            args = post["args"]
+        if "kwargs" in post:
+            kwargs = post["kwargs"]
+        model = request.env[model]
+        result = getattr(model, function)(*args, **kwargs)
+        return result
+
+    @http.route('/object/<string:model>/<int:rec_id>/<string:function>', 
+        type='json', auth='public',
+        methods=["POST"], csrf=False, sitemap=False)
+    def call_obj_function(self, model, rec_id, function, **post):
+        args = []
+        kwargs = {}
+        if "args" in post:
+            args = post["args"]
+        if "kwargs" in post:
+            kwargs = post["kwargs"]
+        obj = request.env[model].browse(rec_id).ensure_one()
+        result = getattr(obj, function)(*args, **kwargs)
+        return result
 
     @http.route(
         '/api/<string:model>', 
