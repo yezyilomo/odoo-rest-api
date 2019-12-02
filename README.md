@@ -14,7 +14,7 @@ Send a POST request with JSON body as shown below.
 
 Request Body
 
-```json
+```js
 {
     "jsonrpc": "2.0",
     "params": {
@@ -33,7 +33,7 @@ If you have set the default database then you can simply use `/auth` route to do
 
 Request Body
 
-```json
+```js
 {
     "params": {
         "login": "your@email.com",
@@ -60,7 +60,7 @@ Use session_id from the response as a parameter to all requests.
 
    `GET /api/res.users/?query={id, name}`
 
-   ```json
+   ```js
    {
        "count": 2, 
        "prev": null, 
@@ -84,7 +84,7 @@ Use session_id from the response as a parameter to all requests.
 
    `GET /api/res.users/?query={id, name, company_id{name}}
 
-   ```json
+   ```js
    {
        "count": 2, 
        "prev": null, 
@@ -114,7 +114,7 @@ Use session_id from the response as a parameter to all requests.
 
    `GET /api/product.template/?query={id, name, related_products{name}`
 
-   ```json
+   ```js
    {
        "count": 2, 
        "prev": null, 
@@ -145,7 +145,7 @@ Use session_id from the response as a parameter to all requests.
 
    If you want to fetch all fields except few you can use exclude(-) operator. For example in the case above if we want to fetch all fields except `name` field, here is how we could do it   
    `GET /api/product.template/?query={-name}&filter=[["id", ">", 60], ["id", "<", 70]]`   
-   ```json
+   ```js
    {
         "count": 3, 
         "prev": null, 
@@ -168,7 +168,7 @@ Use session_id from the response as a parameter to all requests.
    There is also a wildcard(\*) operator which can be used to fetch all fields, Below is an example which shows how you can fetch all product's fields but under `related_products` field get all fields except `id`.
 
    `GET /api/product.template/?query={*, related_products{-id}}&filter=[["id", ">", 60], ["id", "<", 70]]`   
-   ```json
+   ```js
    {
         "count": 3, 
         "prev": null, 
@@ -199,7 +199,7 @@ Use session_id from the response as a parameter to all requests.
 
     `GET /api/product.template/?query={id, name}&filter=[["id", ">", 60], ["id", "<", 70]]`
 
-    ```json
+    ```js
     {
         "count": 3, 
         "prev": null, 
@@ -225,7 +225,7 @@ Use session_id from the response as a parameter to all requests.
 
     `GET /api/product.template/?query={id, name}&page_size=5&page=3`
 
-    ```json
+    ```js
     {
         "count": 5, 
         "prev": 2, 
@@ -250,7 +250,7 @@ Use session_id from the response as a parameter to all requests.
     
     `GET /api/product.template/?query={id, name}&limit=3`
 
-    ```json
+    ```js
     {
         "count": 3, 
         "prev": null, 
@@ -275,7 +275,7 @@ Use session_id from the response as a parameter to all requests.
 
     `GET /api/product.template/95/?query={id, name}`
 
-    ```json
+    ```js
     {
         "id": 95, 
         "name": "Alaf versatile steel roof"
@@ -297,7 +297,7 @@ Use session_id from the response as a parameter to all requests.
 
     Request Body
 
-    ```json
+    ```js
     {
         "params": {
             "data": {
@@ -309,7 +309,7 @@ Use session_id from the response as a parameter to all requests.
 
     Response
 
-    ```json
+    ```js
     {
         "jsonrpc": "2.0",
         "id": null,
@@ -324,7 +324,7 @@ Use session_id from the response as a parameter to all requests.
 
     Request Body
 
-    ```json
+    ```js
     {
         "params": {
             "context": {
@@ -360,7 +360,7 @@ Use session_id from the response as a parameter to all requests.
 
     Request Body
 
-    ```json
+    ```js
     {
         "params": {
             "filter": [["id", "=", 95]],
@@ -373,7 +373,7 @@ Use session_id from the response as a parameter to all requests.
 
     Response
 
-    ```json
+    ```js
     {
         "jsonrpc": "2.0",
         "id": null,
@@ -388,7 +388,7 @@ Use session_id from the response as a parameter to all requests.
 
     Request Body
 
-    ```json
+    ```js
     {
         "params": {
             "context": {
@@ -418,7 +418,7 @@ Use session_id from the response as a parameter to all requests.
 
     Request Body
 
-    ```json
+    ```js
     {
         "params": {
             "filter": [["id", "=", 95]],
@@ -439,7 +439,7 @@ Use session_id from the response as a parameter to all requests.
 
     Response:
 
-    ```json
+    ```js
     {
         "jsonrpc": "2.0",
         "id": null,
@@ -463,7 +463,7 @@ All parameters works the same as explained on previous section, what changes is 
 
 Request Body
 
-```json
+```js
 {
     "params": {
         "data": {
@@ -491,7 +491,7 @@ Request Body
 
     Response
 
-    ```json
+    ```js
     {
         "result": true
     }
@@ -510,7 +510,7 @@ This takes no parameter and we don't have filter parameter because `id` of recor
 
 Response
 
-```json
+```js
 {
     "result": true
 }
