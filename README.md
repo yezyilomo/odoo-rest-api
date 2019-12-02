@@ -58,7 +58,7 @@ Use session_id from the response as a parameter to all requests.
 
    This parameter is used to dynamically select fields to include on a response. For example if we want to select `id` and `name` fields from `res.users` model here is how we would do it.
 
-   `GET /api/res.users/?query=[["id", "name"]]`
+   `GET /api/res.users/?query={id, name}`
 
    ```json
    {
@@ -79,13 +79,10 @@ Use session_id from the response as a parameter to all requests.
         ]
     }
    ```
-
-   Note: query parameter is a list of list of fields i.e `query=[[field1, field2, ...]]` this notation means that we expect multiple records(array of records) from model specified.
    
-
    For nested records, for example if we want to select `id`, `name` and `company_id` fields from `res.users` model, but under `company_id` we want to select `name` field only. here is how we would do it.
 
-   `GET /api/res.users/?query=[["id", "name", {"company_id": ["name"]}]]`
+   `GET /api/res.users/?query={id, name, company_id{name}}
 
    ```json
    {
@@ -115,7 +112,7 @@ Use session_id from the response as a parameter to all requests.
 
    For nested iterable records, for example if we want to select `id`, `name` and `related_products` fields from `product.template` model, but under `related_products` we want to select `name` field only. here is how we would do it.
 
-   `GET /api/product.template/?query=[["id", "name", {"related_products": [["name"]]}]]`
+   `GET /api/product.template/?query={id, name, related_products{name}`
 
    ```json
    {
@@ -146,7 +143,52 @@ Use session_id from the response as a parameter to all requests.
    }
    ```
 
-   Note: Again `related_products` parameter is a list of list of fields i.e `{"related_products": [["name"]]}` just like in `query` this notation means that we are expecting multiple records(array of records) from `related_products` field. 
+   If you want to fetch all fields except few you can use exclude(-) operator. For example in the case above if we want to fetch all fields except `name` field, here is how we could do it   
+   `GET /api/product.template/?query={-name}&filter=[["id", ">", 60], ["id", "<", 70]]`   
+   ```json
+   {
+        "count": 3, 
+        "prev": null, 
+        "current": 1, 
+        "next": null, 
+        "total_pages": 1, 
+        "result": [
+            {   
+                "id": 1,
+                ... // All fields except name
+            }, 
+            {
+                "id": 2
+                ... // All fields except name
+            }
+        ]
+   }
+   ```
+
+   There is also a wildcard(\*) operator which can be used to fetch all fields, Below is an example which shows how you can fetch all product's fields but under `related_products` field get all fields except `id`.
+
+   `GET /api/product.template/?query={*, related_products{-id}}&filter=[["id", ">", 60], ["id", "<", 70]]`   
+   ```json
+   {
+        "count": 3, 
+        "prev": null, 
+        "current": 1, 
+        "next": null, 
+        "total_pages": 1, 
+        "result": [
+            {   
+                "id": 1,
+                "name": "Pen",
+                "related_products"{
+                    "name": "Pencil",
+                    ... // All fields except id
+                }
+                ... // All fields
+            }, 
+            ...
+        ]
+   }
+   ```
 
    **If you don't specify query parameter all fields will be returned.**
 
@@ -155,7 +197,7 @@ Use session_id from the response as a parameter to all requests.
 
     This is used to filter out data returned. For example if we want to get all products with id ranging from 60 to 70, here's how we would do it.
 
-    `GET /api/product.template/?query=[["id", "name"]]&filter=[["id", ">", 60], ["id", "<", 70]]`
+    `GET /api/product.template/?query={id, name}&filter=[["id", ">", 60], ["id", "<", 70]]`
 
     ```json
     {
@@ -177,35 +219,11 @@ Use session_id from the response as a parameter to all requests.
     }
     ```
 
-* exclude (optional):
-
-    This is used to exclude fields fetched. For example in above case if we want to exclude name field, here is how
-
-    `GET /api/product.template/?query=[["id", "name"]]&filter=[["id", ">", 60], ["id", "<", 70]]&exclude=["id"]`
-
-    ```json
-    {
-        "count": 3, 
-        "prev": null, 
-        "current": 1, 
-        "next": null, 
-        "total_pages": 1, 
-        "result": [
-            {
-                "name": "Crown Paints Economy Superplus Emulsion"
-            }, 
-            {
-                "name": "Crown Paints Permacote"
-            }
-        ]
-    }
-    ```
-
 * page_size (optional) & page (optional):
 
     These two allows us to do pagination. Hre page_size is used to specify number of records on a single page and page is used to specify the current page. For example if we want our page_size to be 5 records and we want to fetch data on page 3 here is how we would do it.
 
-    `GET /api/product.template/?query=[["id", "name"]]&page_size=5&page=3`
+    `GET /api/product.template/?query={id, name}&page_size=5&page=3`
 
     ```json
     {
@@ -230,7 +248,7 @@ Use session_id from the response as a parameter to all requests.
 
     This is used to limit the number of results returned on a request regardless of pagination. For example
     
-    `GET /api/product.template/?query=[["id", "name"]]&limit=3`
+    `GET /api/product.template/?query={id, name}&limit=3`
 
     ```json
     {
@@ -255,25 +273,11 @@ Use session_id from the response as a parameter to all requests.
 
     Here query parameter works exactly the same as explained before except it selects fields on a single record. For example
 
-    `GET /api/product.template/95/?query=["id", "name"]`
+    `GET /api/product.template/95/?query={id, name}`
 
     ```json
     {
         "id": 95, 
-        "name": "Alaf versatile steel roof"
-    }
-    ```
-
-    Note: query parameter is a list of fields i.e query=[...] this notation means that we expect single record
-
-* exclude (optional)
-
-    This also works the same as explained above. For example
-    
-    `GET /api/product.template/95/?query=["id", "name"]&exclude=["id"]`
-
-    ```json
-    {
         "name": "Alaf versatile steel roof"
     }
     ```
