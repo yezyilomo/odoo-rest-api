@@ -6,7 +6,7 @@ import requests
 import datetime
 from itertools import chain
 
-from odoo import http
+from odoo import http, _
 from odoo.http import request
 
 from .parser import Parser
