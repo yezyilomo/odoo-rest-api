@@ -144,7 +144,8 @@ Use session_id from the response as a parameter to all requests.
    ```
 
    If you want to fetch all fields except few you can use exclude(-) operator. For example in the case above if we want to fetch all fields except `name` field, here is how we could do it   
-   `GET /api/product.template/?query={-name}&filter=[["id", ">", 60], ["id", "<", 70]]`   
+   `GET /api/product.template/?query={-name}`
+   
    ```js
    {
         "count": 3, 
@@ -161,13 +162,15 @@ Use session_id from the response as a parameter to all requests.
                 "id": 2
                 ... // All fields except name
             }
+            ...
         ]
    }
    ```
 
    There is also a wildcard(\*) operator which can be used to fetch all fields, Below is an example which shows how you can fetch all product's fields but under `related_products` field get all fields except `id`.
 
-   `GET /api/product.template/?query={*, related_products{-id}}&filter=[["id", ">", 60], ["id", "<", 70]]`   
+   `GET /api/product.template/?query={*, related_products{-id}}`
+
    ```js
    {
         "count": 3, 
