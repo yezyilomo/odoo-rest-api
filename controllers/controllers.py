@@ -185,6 +185,7 @@ class OdooAPI(http.Controller):
 
         try:
             serializer = Serializer(record, query)
+            data = serializer.data
         except (SyntaxError, QueryFormatError) as e:
             res = error_response(e, e.msg)
             return http.Response(
@@ -194,7 +195,7 @@ class OdooAPI(http.Controller):
             )
 
         return http.Response(
-            json.dumps(serializer.data),
+            json.dumps(data),
             status=200,
             mimetype='application/json'
         )
