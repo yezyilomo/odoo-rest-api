@@ -43,7 +43,7 @@ Request Body
 }
 ```
 
-Use session_id from the response as a parameter to all requests.
+Use `session_id` from the response as a parameter to all requests.
 
 
 ## Allowed HTTP methods 
@@ -54,7 +54,7 @@ Use session_id from the response as a parameter to all requests.
 
 `GET /api/{model}/`
 #### Parameters 
-* query (optional):
+* **query (optional):**
 
    This parameter is used to dynamically select fields to include on a response. For example if we want to select `id` and `name` fields from `res.users` model here is how we would do it.
 
@@ -196,7 +196,7 @@ Use session_id from the response as a parameter to all requests.
    **If you don't specify query parameter all fields will be returned.**
 
 
-* filter (optional):
+* **filter (optional):**
 
     This is used to filter out data returned. For example if we want to get all products with id ranging from 60 to 70, here's how we would do it.
 
@@ -222,7 +222,7 @@ Use session_id from the response as a parameter to all requests.
     }
     ```
 
-* page_size (optional) & page (optional):
+* **page_size (optional) & page (optional):**
 
     These two allows us to do pagination. Hre page_size is used to specify number of records on a single page and page is used to specify the current page. For example if we want our page_size to be 5 records and we want to fetch data on page 3 here is how we would do it.
 
@@ -247,7 +247,7 @@ Use session_id from the response as a parameter to all requests.
 
     Note: `prev`, `current`, `next` and `total_pages` shows the previous page, current page, next page and the total number of pages respectively.
 
-* limit (optional)
+* **limit (optional):**
 
     This is used to limit the number of results returned on a request regardless of pagination. For example
     
@@ -272,7 +272,7 @@ Use session_id from the response as a parameter to all requests.
 
 `GET /api/{model}/{id}`
 #### Parameters
-* query (optional)
+* **query (optional):**
 
     Here query parameter works exactly the same as explained before except it selects fields on a single record. For example
 
@@ -292,7 +292,7 @@ Use session_id from the response as a parameter to all requests.
 #### Headers
 * Content-Type: application/json
 #### Parameters 
-* data (mandatory)
+* **data (mandatory):**
 
     This is used to pass data to be posted. For example
     
@@ -322,7 +322,8 @@ Use session_id from the response as a parameter to all requests.
 
     The number on `result` is the `id` of the newly created record.
 
-* context (optional)
+* **context (optional):**
+
     This is used to pass any context if it's needed when creating new record. The format of passing it is
 
     Request Body
@@ -352,10 +353,11 @@ Use session_id from the response as a parameter to all requests.
 #### Headers
 * Content-Type: application/json
 #### Parameters
-* data (mandatory):
+* **data (mandatory):**
 
     This is used to pass data to update, it works with filter parameter, See example below
-* filter (mandatory):
+
+* **filter (mandatory):**
 
     This is used to filter data to update. For example
 
@@ -386,7 +388,7 @@ Use session_id from the response as a parameter to all requests.
 
     Note: If the result is true it means success and if false or otherwise it means there was an error during update.
 
-* context (optional)
+* **context (optional):**
     Just like in GET context is used to pass any context associated with record update. The format of passing it is
 
     Request Body
@@ -409,7 +411,8 @@ Use session_id from the response as a parameter to all requests.
     }
     ```
 
-* PUT operation (optional):
+* **operation (optional)**:
+
     This is only applied to `one2many` and `many2many` fields. The concept is sometimes you might not want to replace all records on either `one2many` or `many2many` fields, instead you might want to add other records or remove some records, this is where put operations comes in place. Thre are basically three PUT operations which are push, pop and delete. 
     * push is used to add/append other records to existing linked records
     * pop is used to remove/unlink some records from the record being updated but it doesn't delete them on the system
@@ -486,7 +489,7 @@ Request Body
 
 `DELETE /api/{model}/`
 #### Parameters
-* filter (mandatory):
+* **filter (mandatory):**
 
     This is used to filter data to delete. For example
 
