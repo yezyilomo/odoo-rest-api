@@ -37,6 +37,6 @@
     "auto_install": False,
 
     'external_dependencies': {
-        'python': ['dictfier', 'requests']
+        'python': ['pypeg2', 'requests']
     }
 }
