@@ -31,11 +31,12 @@ def error_response(error, msg):
         }
     }
 
+cors = '*'
 
 class OdooAPI(http.Controller):
     @http.route('/auth/', 
-        type='json', auth='public',
-        methods=["POST"], csrf=False, sitemap=False)
+        type='json', auth='none',
+        methods=["POST"], csrf=False, sitemap=False, cors=cors)
     def authenticate(self, *args, **post):
         try:
             login = post["login"]
@@ -52,11 +53,36 @@ class OdooAPI(http.Controller):
         except KeyError:
             raise exceptions.AccessDenied(message='`db` is required.')
 
-        request.session.authenticate(db, login, password)
-        return request.env['ir.http'].session_info()
+        url_root = request.httprequest.url_root
+        AUTH_URL = f"{url_root}web/session/authenticate/"
+        
+        headers = {'Content-type': 'application/json'}
+            
+        data = {
+            "jsonrpc": "2.0",
+            "params": {
+                "login": login,
+                "password": password,
+                "db": db
+            }
+        }
+        
+        res = requests.post(
+            AUTH_URL, 
+            data=json.dumps(data), 
+            headers=headers
+        )
+        
+        try:
+            session_id = res.cookies["session_id"]
+            user = json.loads(res.text)
+            user["result"]["session_id"]= session_id
+        except Exception:
+            return "Invalid credentials."
+        return user["result"]
 
     @http.route('/object/<string:model>/<string:function>', 
-        type='json', auth='user',
+        type='json', auth='user', cors=cors,
         methods=["POST"], csrf=False, sitemap=False)
     def call_model_function(self, model, function, **post):
         args = []
@@ -70,7 +96,7 @@ class OdooAPI(http.Controller):
         return result
 
     @http.route('/object/<string:model>/<int:rec_id>/<string:function>', 
-        type='json', auth='user',
+        type='json', auth='user', cors=cors,
         methods=["POST"], csrf=False, sitemap=False)
     def call_obj_function(self, model, rec_id, function, **post):
         args = []
@@ -85,7 +111,7 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>', 
-        auth='user', methods=['GET'], csrf=False)
+        auth='user', methods=['GET'], csrf=False, cors=cors)
     def get_model_data(self, model, **params):
         try:
             records = request.env[model].search([])
@@ -162,7 +188,7 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/<int:rec_id>',
-        auth='user', methods=['GET'], csrf=False)
+        auth='user', methods=['GET'], csrf=False, cors=cors)
     def get_model_rec(self, model, rec_id, **params):
         try:
             records = request.env[model].search([])
@@ -202,7 +228,7 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/', 
-        type='json', auth="user", 
+        type='json', auth="user", cors=cors,
         methods=['POST'], website=True, csrf=False)
     def post_model_data(self, model, **post):
         try:
@@ -229,7 +255,7 @@ class OdooAPI(http.Controller):
     # This is for single record update
     @http.route(
         '/api/<string:model>/<int:rec_id>/', 
-        type='json', auth="user", 
+        type='json', auth="user", cors=cors,
         methods=['PUT'], website=True, csrf=False)
     def put_model_record(self, model, rec_id, **post):
         try:
@@ -292,7 +318,7 @@ class OdooAPI(http.Controller):
     # This is for bulk update
     @http.route(
         '/api/<string:model>/', 
-        type='json', auth="user", 
+        type='json', auth="user", cors=cors,
         methods=['PUT'], website=True, csrf=False)
     def put_model_records(self, model, **post):
         try:
@@ -361,7 +387,7 @@ class OdooAPI(http.Controller):
     # This is for deleting one record
     @http.route(
         '/api/<string:model>/<int:rec_id>/', 
-        type='http', auth="user", 
+        type='http', auth="user", cors=cors,
         methods=['DELETE'], website=True, csrf=False)
     def delete_model_record(self, model,  rec_id, **post):
         try:
@@ -399,7 +425,7 @@ class OdooAPI(http.Controller):
     # This is for bulk deletion
     @http.route(
         '/api/<string:model>/', 
-        type='http', auth="user", 
+        type='http', auth="user", cors=cors,
         methods=['DELETE'], website=True, csrf=False)
     def delete_model_records(self, model, **post):
         filters = json.loads(post["filter"])
@@ -438,7 +464,7 @@ class OdooAPI(http.Controller):
 
     @http.route(
         '/api/<string:model>/<int:rec_id>/<string:field>', 
-        type='http', auth="user", 
+        type='http', auth="user", cors=cors,
         methods=['GET'], website=True, csrf=False)
     def get_binary_record(self, model,  rec_id, field, **post):
         try:
