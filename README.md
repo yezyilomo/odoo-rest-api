@@ -45,6 +45,8 @@ Request Body
 
 Use `session_id` from the response as a parameter to all requests.
 
+**Note:** For security reasons, in production don't send `session_id` as a parameter, use a cookie instead.
+
 
 ## Allowed HTTP methods 
 
