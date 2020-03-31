@@ -524,3 +524,17 @@ Response
 }
 ```
 
+## Calling Model's Function
+
+Sometimes, you need to get certain model's functions, and inorder to do so, provide an empty POST body to
+
+`POST /object/{model}/{id}/{function name}`
+
+Request Body (empty)
+
+```js
+{
+}
+```
+
+
