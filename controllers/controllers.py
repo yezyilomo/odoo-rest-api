@@ -19,7 +19,7 @@ def error_response(error, msg):
         "jsonrpc": "2.0",
         "id": None,
         "error": {
-          "code": 200,
+          "code": 400,
           "message": msg,
           "data": {
               "name": str(error),
@@ -119,7 +119,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, msg)
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
 
@@ -167,7 +167,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, e.msg)
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
 
@@ -196,7 +196,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, msg)
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
 
@@ -215,7 +215,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, e.msg)
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
 
@@ -392,7 +392,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, msg)
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
         
@@ -413,7 +413,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, str(e))
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
 
@@ -431,7 +431,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, msg)
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
         
@@ -452,7 +452,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, str(e))
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
 
@@ -467,7 +467,7 @@ class OdooAPI(http.Controller):
             res = error_response(e, msg)
             return http.Response(
                 json.dumps(res),
-                status=200,
+                status=400,
                 mimetype='application/json'
             )
 
