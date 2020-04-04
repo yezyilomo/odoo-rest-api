@@ -524,3 +524,23 @@ Response
 }
 ```
 
+## Calling Model's Function
+
+Sometimes, you need to get certain model's functions, and inorder to do so, provide POST body to
+
+`POST /object/{model}/{id}/{function name}`
+
+You can pass arguments(args) and keyword arguments(kwargs) as required by the model function called.
+
+Request Body
+
+```js
+{
+	"args": {
+		
+	},
+	"kwargs ": {
+		
+	}
+}
+```
