@@ -9,7 +9,7 @@ This is a module which expose Odoo as a REST API
 ## Getting Started
 
 ### Authenticating users
-Before making any request make sure to login and obtain session_id(This will act as your Authentication token), Send all your requests with session_id as a parameter for authentication. There are two ways to obtain `session_id`, the first one is using `/web/session/authenticate/` route and the second one is using `auth` route.
+Before making any request make sure to login and obtain session_id(This will act as your Authentication token), Send all your requests with session_id as a parameter for authentication. There are two ways to obtain `session_id`, the first one is using `/web/session/authenticate/` route and the second one is using `/auth/` route.
 
 - Using `/web/session/authenticate/` route
   
@@ -33,6 +33,7 @@ Before making any request make sure to login and obtain session_id(This will act
   Obtain `session_id` from a cookie created(Not the one from a response). It'll be a long string something   like "62dd55784cb0b1f69c584f7dc1eea6f587e32570", Then you can use this as a parameter to all requests.
 
 - Using `/auth/` route
+
   If you have set the default database then you can simply use `/auth` route to do authentication as 
   
   `POST /auth/`
@@ -54,7 +55,12 @@ Before making any request make sure to login and obtain session_id(This will act
 **Note:** For security reasons, in production don't send `session_id` as a parameter, use a cookie instead.
 
 ### Examples showing how to obtain `session_id` and use it
-#### Using `/web/session/authenticate/` route for authentication
+
+<details>
+<summary>
+Using `/web/session/authenticate/` route for authentication
+</summary>
+
 ```py
 import json
 import requests
@@ -121,8 +127,14 @@ res = requests.get(
 # This will be small since we've retrieved only id and name
 print(res.text)
 ```
+</details>
 
-#### Using `/auth/` route for authentication
+
+<details>
+<summary>
+Using `/auth/` route for authentication
+</summary>
+
 ```py
 import json
 import requests
@@ -188,9 +200,14 @@ res = requests.get(
 # This will be small since we've retrieved only id and name
 print(res.text)
 ```
+</details>
 
-#### Avoid sending `session_id` as a parameter for security reasons
-You can use cookie instead of sending `session_id` as a parameter, below is the example of how to do so
+<details>
+<summary>
+Avoid sending `session_id` as a parameter for security reasons
+</summary>
+
+When authenticating users, you can use cookie instead of sending `session_id` as a parameter, this method is recommended in production for security reasons, below is the example showing how to do so.
 ```py
 import json
 import requests
@@ -256,6 +273,7 @@ res = requests.get(
 # This will be small since we've retrieved only id and name
 print(res.text)
 ```
+</details>
 
 
 ## Allowed HTTP methods 
