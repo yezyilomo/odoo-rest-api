@@ -524,3 +524,46 @@ Response
 }
 ```
 
+## Calling Model's Function
+
+Sometimes you might need to call model's function or a function bound to a record, inorder to do so, send a `POST` request with a body containing arguments(args) and keyword arguments(kwargs) required by the function you want to call.
+
+Below is how you can call model's function
+
+`POST /object/{model}/{function name}`
+
+Request Body
+
+```js
+{
+    "params": {
+	"args": [arg1, arg2, ..],
+	"kwargs ": {
+	    "key1": "value1",
+	    "key2": "value2",
+	    ...
+	}
+    }
+}
+```
+
+And below is how you can call a function bound to a record
+
+`POST /object/{model}/{record_id}/{function name}`
+
+Request Body
+
+```js
+{
+    "params": {
+	"args": [arg1, arg2, ..],
+	"kwargs ": {
+	    "key1": "value1",
+	    "key2": "value2",
+	    ...
+	}
+    }
+}
+```
+
+In both cases the response will be the result returned by the function called
