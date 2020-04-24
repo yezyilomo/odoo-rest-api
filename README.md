@@ -58,7 +58,7 @@ Before making any request make sure to login and obtain session_id(This will act
 
 <details>
 <summary>
-Using `/web/session/authenticate/` route for authentication
+Using <code>/web/session/authenticate/</code> route for authentication
 </summary>
 
 ```py
@@ -132,7 +132,7 @@ print(res.text)
 
 <details>
 <summary>
-Using `/auth/` route for authentication
+Using <code>/auth/</code> route for authentication
 </summary>
 
 ```py
@@ -204,10 +204,10 @@ print(res.text)
 
 <details>
 <summary>
-Avoid sending `session_id` as a parameter for security reasons
+Avoiding to send <code>session_id</code> as a parameter for security reasons
 </summary>
 
-When authenticating users, you can use cookie instead of sending `session_id` as a parameter, this method is recommended in production for security reasons, below is the example showing how to do so.
+When authenticating users, you can use a cookie instead of sending `session_id` as a parameter, this method is recommended in production for security reasons, below is the example showing how to use a cookie.
 ```py
 import json
 import requests
