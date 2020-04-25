@@ -1,51 +1,279 @@
 # Odoo REST API
 This is a module which expose Odoo as a REST API 
 
+
 ## Installing
 * Download this module and put it to your Odoo addons directory
 * Install requirements with `pip install -r requirements.txt`
 
-
 ## Getting Started
-Before making any request make sure to login and obtain session_id(This will act as your API key), Send all your requests with session_id as a parameter for authentication. Here is how to obtain it, 
-Send a POST request with JSON body as shown below.
 
-`POST /web/session/authenticate/`
+### Authenticating users
+Before making any request make sure to login and obtain session_id(This will act as your Authentication token), Send all your requests with session_id as a parameter for authentication. There are two ways to obtain `session_id`, the first one is using `/web/session/authenticate/` route and the second one is using `/auth/` route.
 
-Request Body
+- Using `/web/session/authenticate/` route
+  
+  Send a POST request with JSON body as shown below.
+  
+  `POST /web/session/authenticate/`
+  
+  Request Body
+  
+  ```js
+  {
+      "jsonrpc": "2.0",
+      "params": {
+          "login": "your@email.com",
+          "password": "your_password",
+          "db": "database_name"
+      }
+  }
+  ```
+  
+  Obtain `session_id` from a cookie created(Not the one from a response). It'll be a long string something   like "62dd55784cb0b1f69c584f7dc1eea6f587e32570", Then you can use this as a parameter to all requests.
 
-```js
-{
-    "jsonrpc": "2.0",
-    "params": {
-        "login": "your@email.com",
-        "password": "your_password",
-        "db": "database_name"
-    }
-}
-```
+- Using `/auth/` route
 
-Obtain session_id from a cookie created(Not the one from a response). It'll be a long string something like "62dd55784cb0b1f69c584f7dc1eea6f587e32570", Use this as a parameter to all requests.
-
-If you have set the default database then you can simply use `/auth` route to do authentication as 
-
-`POST /auth/`
-
-Request Body
-
-```js
-{
-    "params": {
-        "login": "your@email.com",
-        "password": "your_password",
-        "db": "your_db_name"
-    }
-}
-```
-
-Use `session_id` from the response as a parameter to all requests.
+  If you have set the default database then you can simply use `/auth` route to do authentication as 
+  
+  `POST /auth/`
+  
+  Request Body
+  
+  ```js
+  {
+      "params": {
+          "login": "your@email.com",
+          "password": "your_password",
+          "db": "your_db_name"
+      }
+  }
+  ```
+  
+  Use `session_id` from the response as a parameter to all requests.
 
 **Note:** For security reasons, in production don't send `session_id` as a parameter, use a cookie instead.
+
+### Examples showing how to obtain `session_id` and use it
+
+<details>
+<summary>
+Using <code>/web/session/authenticate/</code> route for authentication
+</summary>
+
+```py
+import json
+import requests
+import sys
+
+AUTH_URL = 'http://localhost:8069/web/session/authenticate/'
+
+headers = {'Content-type': 'application/json'}
+
+
+# Remember to configure default db on odoo configuration file(dbfilter = ^db_name$)
+# Authentication credentials
+data = {
+    'params': {
+         'login': 'your@email.com',
+         'password': 'yor_password',
+         'db': 'your_db_name'
+    }
+}
+
+# Authenticate user
+res = requests.post(
+    AUTH_URL, 
+    data=json.dumps(data), 
+    headers=headers
+)
+
+# Get session_id from the response cookies
+# We are going to use this as our API key
+session_id = res.cookies.get('session_id', '')
+
+
+# Example 1
+# Get users
+USERS_URL = 'http://localhost:8069/api/res.users/'
+
+# Pass session_id for auth
+# This will take time since it retrives all res.users fields
+# You can use query param to fetch specific fields
+params = {'session_id': session_id}
+
+res = requests.get(
+    USERS_URL, 
+    params=params
+)
+
+# This will be a very long response since it has many data
+print(res.text)
+
+
+# Example 2
+# Get products(assuming you have products in you db)
+# Here am using query param to fetch only product id and name(This will be faster)
+USERS_URL = 'http://localhost:8069/api/product.product/'
+
+# Pass session_id for auth
+params = {'session_id': session_id, 'query': '{id, name}'}
+
+res = requests.get(
+    USERS_URL, 
+    params=params
+)
+
+# This will be small since we've retrieved only id and name
+print(res.text)
+```
+</details>
+
+
+<details>
+<summary>
+Using <code>/auth/</code> route for authentication
+</summary>
+
+```py
+import json
+import requests
+
+AUTH_URL = 'http://localhost:8069/auth/'
+
+headers = {'Content-type': 'application/json'}
+
+
+# Remember to configure default db on odoo configuration file(dbfilter = ^db_name$)
+# Authentication credentials
+data = {
+    'params': {
+         'login': 'your@email.com',
+         'password': 'yor_password',
+         'db': 'your_db_name'
+    }
+}
+
+# Authenticate user
+res = requests.post(
+    AUTH_URL, 
+    data=json.dumps(data), 
+    headers=headers
+)
+
+# Get session_id from the response
+# We are going to use this as our API key
+session_id = json.loads(res.text)['result']['session_id']
+
+
+# Example 1
+# Get users
+USERS_URL = 'http://localhost:8069/api/res.users/'
+
+# Pass session_id for auth
+# This will take time since it retrives all res.users fields
+# You can use query param to fetch specific fields
+params = {'session_id': session_id}
+
+res = requests.get(
+    USERS_URL, 
+    params=params
+)
+
+# This will be a very long response since it has many data
+print(res.text)
+
+
+# Example 2
+# Get products(assuming you have products in you db)
+# Here am using query param to fetch only product id and name(This will be faster)
+USERS_URL = 'http://localhost:8069/api/product.product/'
+
+# Pass session_id for auth
+params = {'session_id': session_id, 'query': '{id, name}'}
+
+res = requests.get(
+    USERS_URL, 
+    params=params
+)
+
+# This will be small since we've retrieved only id and name
+print(res.text)
+```
+</details>
+
+<details>
+<summary>
+Avoiding to send <code>session_id</code> as a parameter for security reasons
+</summary>
+
+When authenticating users, you can use a cookie instead of sending `session_id` as a parameter, this method is recommended in production for security reasons, below is the example showing how to use a cookie.
+```py
+import json
+import requests
+import sys
+
+AUTH_URL = 'http://localhost:8069/web/session/authenticate/'
+
+headers = {'Content-type': 'application/json'}
+
+
+# Remember to configure default db on odoo configuration file(dbfilter = ^db_name$)
+# Authentication credentials
+data = {
+    'params': {
+         'login': 'your@email.com',
+         'password': 'yor_password',
+         'db': 'your_db_name'
+    }
+}
+
+# Authenticate user
+res = requests.post(
+    AUTH_URL, 
+    data=json.dumps(data), 
+    headers=headers
+)
+
+# Get response cookies
+# We will use this to authenticate user
+cookies = res.cookies
+
+
+# Example 1
+# Get users
+USERS_URL = 'http://localhost:8069/api/res.users/'
+
+# This will take time since it retrives all res.users fields
+# You can use query param to fetch specific fields
+
+res = requests.get(
+    USERS_URL, 
+    cookies=cookies  # Here we are sending cookies instead of `session_id`
+)
+
+# This will be a very long response since it has many data
+print(res.text)
+
+
+# Example 2
+# Get products(assuming you have products in you db)
+# Here am using query param to fetch only product id and name(This will be faster)
+USERS_URL = 'http://localhost:8069/api/product.product/'
+
+# Use query param to fetch only id and name
+params = {'query': '{id, name}'}
+
+res = requests.get(
+    USERS_URL, 
+    params=params,
+    cookies=cookies  # Here we are sending cookies instead of `session_id`
+)
+
+# This will be small since we've retrieved only id and name
+print(res.text)
+```
+</details>
 
 
 ## Allowed HTTP methods 
@@ -524,3 +752,46 @@ Response
 }
 ```
 
+## Calling Model's Function
+
+Sometimes you might need to call model's function or a function bound to a record, inorder to do so, send a `POST` request with a body containing arguments(args) and keyword arguments(kwargs) required by the function you want to call.
+
+Below is how you can call model's function
+
+`POST /object/{model}/{function name}`
+
+Request Body
+
+```js
+{
+    "params": {
+	"args": [arg1, arg2, ..],
+	"kwargs ": {
+	    "key1": "value1",
+	    "key2": "value2",
+	    ...
+	}
+    }
+}
+```
+
+And below is how you can call a function bound to a record
+
+`POST /object/{model}/{record_id}/{function name}`
+
+Request Body
+
+```js
+{
+    "params": {
+	"args": [arg1, arg2, ..],
+	"kwargs ": {
+	    "key1": "value1",
+	    "key2": "value2",
+	    ...
+	}
+    }
+}
+```
+
+In both cases the response will be the result returned by the function called
