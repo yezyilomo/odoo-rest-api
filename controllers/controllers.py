@@ -109,6 +109,21 @@ class OdooAPI(http.Controller):
         return result
 
     @http.route(
+        '/object/<string:model>/<string:rec_ids>/<string:function>',
+        type='json', auth='user', methods=["POST"], csrf=False)
+    def call_objs_function(self, model, rec_ids, function, **post):
+        args = []
+        kwargs = {}
+        if "args" in post:
+            args = post["args"]
+        if "kwargs" in post:
+            kwargs = post["kwargs"]
+        rec_ids = map(int, rec_ids.split(","))
+        objs = request.env[model].browse(rec_ids)
+        result = getattr(objs, function)(*args, **kwargs)
+        return result
+
+    @http.route(
         '/api/<string:model>',
         type='http', auth='user', methods=['GET'], csrf=False)
     def get_model_data(self, model, **params):
