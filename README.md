@@ -312,7 +312,7 @@ print(res.text)
    
    For nested records, for example if we want to select `id`, `name` and `company_id` fields from `res.users` model, but under `company_id` we want to select `name` field only. here is how we would do it.
 
-   `GET /api/res.users/?query={id, name, company_id{name}}
+   `GET /api/res.users/?query={id, name, company_id{name}}`
 
    ```js
    {
