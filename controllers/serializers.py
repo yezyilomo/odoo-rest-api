@@ -130,7 +130,7 @@ class Serializer(object):
                     parsed_query['include']
                 )
                 fields = chain(parsed_query['include'], all_fields)
-                parsed_query['include'] = reversed(list(fields))
+                parsed_query['include'] = list(fields)
 
             for field in parsed_query["include"]:
                 if isinstance(field, dict):
