@@ -253,6 +253,8 @@ class OdooAPI(http.Controller):
             record = model_to_post.with_context(**context).create(data)
         else:
             record = model_to_post.create(data)
+        if type(data) == list:
+            return record.ids
         return record.id
 
     # This is for single record update
