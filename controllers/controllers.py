@@ -52,33 +52,9 @@ class OdooAPI(http.Controller):
         except KeyError:
             raise exceptions.AccessDenied(message='`db` is required.')
 
-        url_root = request.httprequest.url_root
-        AUTH_URL = f"{url_root}web/session/authenticate/"
-
-        headers = {'Content-type': 'application/json'}
-
-        data = {
-            "jsonrpc": "2.0",
-            "params": {
-                "login": login,
-                "password": password,
-                "db": db
-            }
-        }
-
-        res = requests.post(
-            AUTH_URL,
-            data=json.dumps(data),
-            headers=headers
-        )
-
-        try:
-            session_id = res.cookies["session_id"]
-            user = json.loads(res.text)
-            user["result"]["session_id"] = session_id
-        except Exception:
-            return "Invalid credentials."
-        return user["result"]
+        http.request.session.authenticate(db, login, password)
+        res = request.env['ir.http'].session_info()
+        return res
 
     @http.route(
         '/object/<string:model>/<string:function>',
