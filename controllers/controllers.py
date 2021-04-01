@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 import json
 import logging
 import math
@@ -72,11 +73,12 @@ class OdooAPI(http.Controller):
         return result
 
     @http.route(
-        '/report/<string:model>/<int:rec_id>',
+        '/report/<int:rec_id>',
         type='json', auth='user', methods=["POST"], csrf=False)
-    def call_render_qweb_pdf(self, model, rec_id, **post):
-        result = getattr('ir.actions.report', 'render_qweb_pdf')(post.get('res_ids'), post.get('data'))
-        return result
+    def call_render_qweb_pdf(self, rec_id, **post):
+        obj = request.env['ir.actions.report'].browse(rec_id).ensure_one()
+        content, _ = getattr(obj, 'render_qweb_pdf')(post.get('res_ids'), post.get('data'))
+        return base64.b64encode(content)
 
     @http.route(
         '/api/<string:model>',
