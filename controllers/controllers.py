@@ -1,35 +1,16 @@
 # -*- coding: utf-8 -*-
 import json
-import math
 import logging
-import requests
+import math
 
-from odoo import http, _, exceptions
+import requests
+from odoo import http, _
 from odoo.http import request
 
-from .serializers import Serializer
 from .exceptions import QueryFormatError
-
+from .serializers import Serializer
 
 _logger = logging.getLogger(__name__)
-
-
-def error_response(error, msg):
-    return {
-        "jsonrpc": "2.0",
-        "id": None,
-        "error": {
-            "code": 200,
-            "message": msg,
-            "data": {
-                "name": str(error),
-                "debug": "",
-                "message": msg,
-                "arguments": list(error.args),
-                "exception_type": type(error).__name__
-            }
-        }
-    }
 
 
 class OdooAPI(http.Controller):
@@ -39,57 +20,43 @@ class OdooAPI(http.Controller):
     def authenticate(self, *args, **post):
         try:
             login = post["login"]
-        except KeyError:
-            raise exceptions.AccessDenied(message='`login` is required.')
-
-        try:
             password = post["password"]
-        except KeyError:
-            raise exceptions.AccessDenied(message='`password` is required.')
-
-        try:
             db = post["db"]
-        except KeyError:
-            raise exceptions.AccessDenied(message='`db` is required.')
-
-        url_root = request.httprequest.url_root
-        AUTH_URL = f"{url_root}web/session/authenticate/"
-
-        headers = {'Content-type': 'application/json'}
-
-        data = {
-            "jsonrpc": "2.0",
-            "params": {
-                "login": login,
-                "password": password,
-                "db": db
-            }
-        }
-
-        res = requests.post(
-            AUTH_URL,
-            data=json.dumps(data),
-            headers=headers
-        )
+        except KeyError as e:
+            return self.error_response(e, f"`{str(e)}` is required.")
 
         try:
+            url_root = request.httprequest.url_root
+            auth_url = f"{url_root}web/session/authenticate/"
+
+            data = {
+                "jsonrpc": "2.0",
+                "params": {
+                    "login": login,
+                    "password": password,
+                    "db": db
+                }
+            }
+
+            res = requests.post(
+                auth_url,
+                data=json.dumps(data),
+                headers={'Content-type': 'application/json'}
+            )
+
             session_id = res.cookies["session_id"]
             user = json.loads(res.text)
             user["result"]["session_id"] = session_id
-        except Exception:
-            return "Invalid credentials."
+        except Exception as e:
+            return self.error_response(e, "Invalid credentials.")
         return user["result"]
 
     @http.route(
         '/object/<string:model>/<string:function>',
         type='json', auth='user', methods=["POST"], csrf=False)
     def call_model_function(self, model, function, **post):
-        args = []
-        kwargs = {}
-        if "args" in post:
-            args = post["args"]
-        if "kwargs" in post:
-            kwargs = post["kwargs"]
+        args = post.get("args", [])
+        kwargs = post.get("kwargs", {})
         model = request.env[model]
         result = getattr(model, function)(*args, **kwargs)
         return result
@@ -98,14 +65,17 @@ class OdooAPI(http.Controller):
         '/object/<string:model>/<int:rec_id>/<string:function>',
         type='json', auth='user', methods=["POST"], csrf=False)
     def call_obj_function(self, model, rec_id, function, **post):
-        args = []
-        kwargs = {}
-        if "args" in post:
-            args = post["args"]
-        if "kwargs" in post:
-            kwargs = post["kwargs"]
+        args = post.get("args", [])
+        kwargs = post.get("kwargs", {})
         obj = request.env[model].browse(rec_id).ensure_one()
         result = getattr(obj, function)(*args, **kwargs)
+        return result
+
+    @http.route(
+        '/report/<string:model>/<int:rec_id>',
+        type='json', auth='user', methods=["POST"], csrf=False)
+    def call_render_qweb_pdf(self, model, rec_id, **post):
+        result = getattr('ir.actions.report', 'render_qweb_pdf')(post.get('res_ids'), post.get('data'))
         return result
 
     @http.route(
@@ -115,23 +85,11 @@ class OdooAPI(http.Controller):
         try:
             records = request.env[model].search([])
         except KeyError as e:
-            msg = "The model `%s` does not exist." % model
-            res = error_response(e, msg)
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
-        if "query" in params:
-            query = params["query"]
-        else:
-            query = "{*}"
-
-        if "order" in params:
-            orders = json.loads(params["order"])
-        else:
-            orders = ""
+        query = params.get("query", "{*}")
+        orders = json.loads(params["order"]) if "order" in params else ""
 
         if "filter" in params:
             filters = json.loads(params["filter"])
@@ -145,21 +103,16 @@ class OdooAPI(http.Controller):
         if "page_size" in params:
             page_size = int(params["page_size"])
             count = len(records)
-            total_page_number = math.ceil(count/page_size)
+            total_page_number = math.ceil(count / page_size)
 
-            if "page" in params:
-                current_page = int(params["page"])
-            else:
-                current_page = 1  # Default page Number
-            start = page_size*(current_page-1)
-            stop = current_page*page_size
+            current_page = int(params["page"]) if "page" in params else 1
+            start = page_size * (current_page - 1)
+            stop = current_page * page_size
             records = records[start:stop]
-            next_page = current_page+1 \
-                if 0 < current_page + 1 <= total_page_number \
-                else None
-            prev_page = current_page-1 \
-                if 0 < current_page - 1 <= total_page_number \
-                else None
+            next_page = current_page + 1 \
+                if 0 < current_page + 1 <= total_page_number else None
+            prev_page = current_page - 1 \
+                if 0 < current_page - 1 <= total_page_number else None
 
         if "limit" in params:
             limit = int(params["limit"])
@@ -169,12 +122,7 @@ class OdooAPI(http.Controller):
             serializer = Serializer(records, query, many=True)
             data = serializer.data
         except (SyntaxError, QueryFormatError) as e:
-            res = error_response(e, e.msg)
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            return self.error_response(e)
 
         res = {
             "count": len(records),
@@ -184,11 +132,7 @@ class OdooAPI(http.Controller):
             "total_pages": total_page_number,
             "result": data
         }
-        return http.Response(
-            json.dumps(res),
-            status=200,
-            mimetype='application/json'
-        )
+        return self.response(res)
 
     @http.route(
         '/api/<string:model>/<int:rec_id>',
@@ -197,38 +141,19 @@ class OdooAPI(http.Controller):
         try:
             records = request.env[model].search([])
         except KeyError as e:
-            msg = "The model `%s` does not exist." % model
-            res = error_response(e, msg)
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
-
-        if "query" in params:
-            query = params["query"]
-        else:
-            query = "{*}"
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
         # TODO: Handle the error raised by `ensure_one`
         record = records.browse(rec_id).ensure_one()
 
         try:
+            query = params.get("query", "{*}")
             serializer = Serializer(record, query)
-            data = serializer.data
         except (SyntaxError, QueryFormatError) as e:
-            res = error_response(e, e.msg)
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            return self.error_response(e)
 
-        return http.Response(
-            json.dumps(data),
-            status=200,
-            mimetype='application/json'
-        )
+        return self.response(serializer.data)
 
     @http.route(
         '/api/<string:model>/',
@@ -236,15 +161,15 @@ class OdooAPI(http.Controller):
     def post_model_data(self, model, **post):
         try:
             data = post['data']
-        except KeyError:
+        except KeyError as e:
             msg = "`data` parameter is not found on POST request body"
-            raise exceptions.ValidationError(msg)
+            return self.error_response(e, msg)
 
         try:
             model_to_post = request.env[model]
-        except KeyError:
-            msg = "The model `%s` does not exist." % model
-            raise exceptions.ValidationError(msg)
+        except KeyError as e:
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
         # TODO: Handle data validation
 
@@ -262,20 +187,19 @@ class OdooAPI(http.Controller):
     def put_model_record(self, model, rec_id, **post):
         try:
             data = post['data']
-        except KeyError:
+        except KeyError as e:
             msg = "`data` parameter is not found on PUT request body"
-            raise exceptions.ValidationError(msg)
+            return self.error_response(e, msg)
 
         try:
             model_to_put = request.env[model]
-        except KeyError:
-            msg = "The model `%s` does not exist." % model
-            raise exceptions.ValidationError(msg)
+        except KeyError as e:
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
         if "context" in post:
             # TODO: Handle error raised by `ensure_one`
-            rec = model_to_put.with_context(**post["context"])\
-                .browse(rec_id).ensure_one()
+            rec = model_to_put.with_context(**post["context"]).browse(rec_id).ensure_one()
         else:
             rec = model_to_put.browse(rec_id).ensure_one()
 
@@ -324,22 +248,21 @@ class OdooAPI(http.Controller):
     def put_model_records(self, model, **post):
         try:
             data = post['data']
-        except KeyError:
+        except KeyError as e:
             msg = "`data` parameter is not found on PUT request body"
-            raise exceptions.ValidationError(msg)
+            return self.error_response(e, msg)
 
         try:
             model_to_put = request.env[model]
-        except KeyError:
-            msg = "The model `%s` does not exist." % model
-            raise exceptions.ValidationError(msg)
+        except KeyError as e:
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
         # TODO: Handle errors on filter
         filters = post["filter"]
 
         if "context" in post:
-            recs = model_to_put.with_context(**post["context"])\
-                .search(filters)
+            recs = model_to_put.with_context(**post["context"]).search(filters)
         else:
             recs = model_to_put.search(filters)
 
@@ -389,17 +312,12 @@ class OdooAPI(http.Controller):
     @http.route(
         '/api/<string:model>/<int:rec_id>/',
         type='http', auth="user", methods=['DELETE'], csrf=False)
-    def delete_model_record(self, model,  rec_id, **post):
+    def delete_model_record(self, model, rec_id, **post):
         try:
             model_to_del_rec = request.env[model]
         except KeyError as e:
-            msg = "The model `%s` does not exist." % model
-            res = error_response(e, msg)
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
         # TODO: Handle error raised by `ensure_one`
         rec = model_to_del_rec.browse(rec_id).ensure_one()
@@ -409,38 +327,23 @@ class OdooAPI(http.Controller):
             res = {
                 "result": is_deleted
             }
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            return self.response(res)
         except Exception as e:
-            res = error_response(e, str(e))
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            return self.error_response(e)
 
     # This is for bulk deletion
     @http.route(
         '/api/<string:model>/',
         type='http', auth="user", methods=['DELETE'], csrf=False)
     def delete_model_records(self, model, **post):
-        filters = json.loads(post["filter"])
-
         try:
             model_to_del_rec = request.env[model]
         except KeyError as e:
-            msg = "The model `%s` does not exist." % model
-            res = error_response(e, msg)
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
         # TODO: Handle error raised by `filters`
+        filters = json.loads(post["filter"])
         recs = model_to_del_rec.search(filters)
 
         try:
@@ -448,39 +351,49 @@ class OdooAPI(http.Controller):
             res = {
                 "result": is_deleted
             }
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            return self.response(res)
         except Exception as e:
-            res = error_response(e, str(e))
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            return self.error_response(e)
 
     @http.route(
         '/api/<string:model>/<int:rec_id>/<string:field>',
         type='http', auth="user", methods=['GET'], csrf=False)
-    def get_binary_record(self, model,  rec_id, field, **post):
+    def get_binary_record(self, model, rec_id, field, **post):
         try:
             request.env[model]
         except KeyError as e:
-            msg = "The model `%s` does not exist." % model
-            res = error_response(e, msg)
-            return http.Response(
-                json.dumps(res),
-                status=200,
-                mimetype='application/json'
-            )
+            msg = f"The model `{model}` does not exist."
+            return self.error_response(e, msg)
 
-        rec = request.env[model].browse(rec_id).ensure_one()
-        if rec.exists():
-            src = getattr(rec, field).decode("utf-8")
-        else:
-            src = False
+        try:
+            rec = request.env[model].browse(rec_id).ensure_one()
+            src = getattr(rec, field).decode("utf-8") if rec.exists() else False
+            return http.Response(src)
+        except Exception as e:
+            return self.error_response(e)
+
+    def error_response(self, e: Exception, msg: str = None):
+        res = {
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": {
+                "code": 200,
+                "message": msg or str(e),
+                "data": {
+                    "name": str(e),
+                    "debug": "",
+                    "message": msg,
+                    "arguments": list(e.args),
+                    "exception_type": type(e).__name__
+                }
+            }
+        }
+        return self.response(res)
+
+    @staticmethod
+    def response(res: dict):
         return http.Response(
-            src
+            json.dumps(res),
+            status=200,
+            mimetype='application/json'
         )
