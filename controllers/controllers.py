@@ -8,7 +8,7 @@ import requests
 from odoo import http, _
 from odoo.http import request
 
-from .exceptions import QueryFormatError
+from .exceptions import ModelException, ObjectException, QueryFormatError
 from .serializers import Serializer
 
 _logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class OdooAPI(http.Controller):
             password = post["password"]
             db = post["db"]
         except KeyError as e:
-            return self.error_response(e, f"`{str(e)}` is required.")
+            return self._error_response(400, e, f"'{str(e)}' is required in params.")
 
         try:
             url_root = request.httprequest.url_root
@@ -48,114 +48,109 @@ class OdooAPI(http.Controller):
             session_id = res.cookies["session_id"]
             user = json.loads(res.text)
             user["result"]["session_id"] = session_id
+            return user["result"]
         except Exception as e:
-            return self.error_response(e, "Invalid credentials.")
-        return user["result"]
+            return self._error_response(401, e, "Invalid credentials.")
 
     @http.route(
         '/object/<string:model>/<string:function>',
         type='json', auth='user', methods=["POST"], csrf=False)
     def call_model_function(self, model, function, **post):
-        args = post.get("args", [])
-        kwargs = post.get("kwargs", {})
-        model = request.env[model]
-        result = getattr(model, function)(*args, **kwargs)
-        return result
+        try:
+            args = post.get("args", [])
+            kwargs = post.get("kwargs", {})
+            model = self._get_model(model)
+            result = getattr(model, function)(*args, **kwargs)
+            return result
+        except (ModelException, ObjectException) as e:
+            return self._error_response(404, e)
 
     @http.route(
         '/object/<string:model>/<int:rec_id>/<string:function>',
         type='json', auth='user', methods=["POST"], csrf=False)
     def call_obj_function(self, model, rec_id, function, **post):
-        args = post.get("args", [])
-        kwargs = post.get("kwargs", {})
-        obj = request.env[model].browse(rec_id).ensure_one()
-        result = getattr(obj, function)(*args, **kwargs)
-        return result
+        try:
+            args = post.get("args", [])
+            kwargs = post.get("kwargs", {})
+            obj = self._get_obj(model, rec_id)
+            result = getattr(obj, function)(*args, **kwargs)
+            return result
+        except (ModelException, ObjectException) as e:
+            return self._error_response(404, e)
 
     @http.route(
         '/report/<int:rec_id>',
         type='json', auth='user', methods=["POST"], csrf=False)
     def call_render_qweb_pdf(self, rec_id, **post):
-        obj = request.env['ir.actions.report'].browse(rec_id).ensure_one()
-        content, _ = getattr(obj, 'render_qweb_pdf')(post.get('res_ids'), post.get('data'))
-        return base64.b64encode(content)
+        try:
+            obj = self._get_obj('ir.actions.report', rec_id)
+            content, _ = getattr(obj, 'render_qweb_pdf')(post.get('res_ids'), post.get('data'))
+            return base64.b64encode(content)
+        except (ModelException, ObjectException) as e:
+            return self._error_response(404, e)
 
     @http.route(
         '/api/<string:model>',
         type='http', auth='user', methods=['GET'], csrf=False)
     def get_model_data(self, model, **params):
         try:
-            records = request.env[model].search([])
-        except KeyError as e:
-            msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
+            model = self._get_model(model)
+            query = params.get("query", "{*}")
+            filters = json.loads(params["filters"]) if "filters" in params else []
+            order = json.loads(params["order"]) if "order" in params else ""
+            limit = int(params.get("limit", 500))
 
-        query = params.get("query", "{*}")
-        orders = json.loads(params["order"]) if "order" in params else ""
+            records = model.search(filters, order=order, limit=limit)
 
-        if "filter" in params:
-            filters = json.loads(params["filter"])
-            records = request.env[model].search(filters, order=orders)
+            if "page_size" in params:
+                page_size = int(params["page_size"])
+                count = len(records)
+                total_page_number = math.ceil(count / page_size)
 
-        prev_page = None
-        next_page = None
-        total_page_number = 1
-        current_page = 1
+                current_page = int(params.get("page", 1))
+                start = page_size * (current_page - 1)
+                stop = current_page * page_size
+                records = records[start:stop]
+                next_page = current_page + 1 \
+                    if 0 < current_page + 1 <= total_page_number else None
+                prev_page = current_page - 1 \
+                    if 0 < current_page - 1 <= total_page_number else None
+            else:
+                prev_page = next_page = None
+                total_page_number = current_page = 1
 
-        if "page_size" in params:
-            page_size = int(params["page_size"])
-            count = len(records)
-            total_page_number = math.ceil(count / page_size)
+            try:
+                serializer = Serializer(records, query, many=True)
+                data = serializer.data
+            except (SyntaxError, QueryFormatError) as e:
+                return self._error_response(400, e)
 
-            current_page = int(params["page"]) if "page" in params else 1
-            start = page_size * (current_page - 1)
-            stop = current_page * page_size
-            records = records[start:stop]
-            next_page = current_page + 1 \
-                if 0 < current_page + 1 <= total_page_number else None
-            prev_page = current_page - 1 \
-                if 0 < current_page - 1 <= total_page_number else None
+            res = {
+                "count": len(records),
+                "prev": prev_page,
+                "current": current_page,
+                "next": next_page,
+                "total_pages": total_page_number,
+                "result": data
+            }
+            return self._response(res)
 
-        if "limit" in params:
-            limit = int(params["limit"])
-            records = records[0:limit]
-
-        try:
-            serializer = Serializer(records, query, many=True)
-            data = serializer.data
-        except (SyntaxError, QueryFormatError) as e:
-            return self.error_response(e)
-
-        res = {
-            "count": len(records),
-            "prev": prev_page,
-            "current": current_page,
-            "next": next_page,
-            "total_pages": total_page_number,
-            "result": data
-        }
-        return self.response(res)
+        except (ModelException, ObjectException) as e:
+            return self._error_response(404, e)
 
     @http.route(
         '/api/<string:model>/<int:rec_id>',
         type='http', auth='user', methods=['GET'], csrf=False)
     def get_model_rec(self, model, rec_id, **params):
         try:
-            records = request.env[model].search([])
-        except KeyError as e:
-            msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
-
-        # TODO: Handle the error raised by `ensure_one`
-        record = records.browse(rec_id).ensure_one()
-
-        try:
+            obj = self._get_obj(model, rec_id)
             query = params.get("query", "{*}")
-            serializer = Serializer(record, query)
+            serializer = Serializer(obj, query)
+            return self._response(serializer.data)
         except (SyntaxError, QueryFormatError) as e:
-            return self.error_response(e)
-
-        return self.response(serializer.data)
+            return self.error_response(400, e)
+        except (ModelException, ObjectException) as e:
+            return self.error_response(404, e)
 
     @http.route(
         '/api/<string:model>/',
@@ -374,12 +369,28 @@ class OdooAPI(http.Controller):
         except Exception as e:
             return self.error_response(e)
 
-    def error_response(self, e: Exception, msg: str = None):
+    def _get_model(self, model):
+        try:
+            return request.env[model]
+        except KeyError as e:
+            msg = f"The model '{model}' does not exist."
+            raise ModelException(msg)
+
+    def _get_obj(self, model, id):
+        try:
+            return self._get_model(model).browse(id).ensure_one()
+        except AttributeError as e:
+            msg = f"The object '{id}' of '{model}' does not exist."
+            raise ObjectException(msg, id)
+        except ValueError as e:
+            msg = f"The object '{id}' of '{model}' is not single."
+            raise ObjectException(msg, id)
+
+    def _error_response(self, status, e: Exception, msg: str = None):
         res = {
             "jsonrpc": "2.0",
             "id": None,
             "error": {
-                "code": 200,
                 "message": msg or str(e),
                 "data": {
                     "name": str(e),
@@ -390,12 +401,12 @@ class OdooAPI(http.Controller):
                 }
             }
         }
-        return self.response(res)
+        return self._response(res, status=status)
 
     @staticmethod
-    def response(res: dict):
+    def _response(res: dict, status=200):
         return http.Response(
             json.dumps(res),
-            status=200,
+            status=status,
             mimetype='application/json'
         )
