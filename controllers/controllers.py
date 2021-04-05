@@ -84,7 +84,9 @@ class OdooAPI(http.Controller):
     def call_render_qweb_pdf(self, rec_id, **post):
         try:
             obj = self._get_obj('ir.actions.report', rec_id)
-            content, _ = getattr(obj, 'render_qweb_pdf')(post.get('res_ids'), post.get('data'))
+            res_ids = json.loads(post.get('res_ids'))
+            data = json.loads(post.get('data', '{}'))
+            content, _ = getattr(obj, 'render_qweb_pdf')(res_ids, data)
             return base64.b64encode(content)
         except (ModelException, ObjectException) as e:
             return self._error_response(404, e)
