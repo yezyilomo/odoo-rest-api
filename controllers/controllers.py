@@ -99,7 +99,7 @@ class OdooAPI(http.Controller):
             model = self._get_model(model)
             query = params.get("query", "{*}")
             filters = json.loads(params["filters"]) if "filters" in params else []
-            order = json.loads(params["order"]) if "order" in params else ""
+            order = params.get("order", "id")
             limit = int(params.get("limit", 500))
 
             records = model.search(filters, order=order, limit=limit)
