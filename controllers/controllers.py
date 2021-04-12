@@ -3,11 +3,11 @@ import base64
 import json
 import logging
 import math
-
 import requests
+import werkzeug
+
 from odoo import http, _
 from odoo.http import request
-
 from .exceptions import ModelException, ObjectException, QueryFormatError
 from .serializers import Serializer
 
@@ -24,7 +24,8 @@ class OdooAPI(http.Controller):
             password = post["password"]
             db = post["db"]
         except KeyError as e:
-            return self._error_response(400, e, f"'{str(e)}' is required in params.")
+            msg = f"'{str(e)}' is required in params."
+            raise werkzeug.exceptions.BadRequest(msg)
 
         try:
             url_root = request.httprequest.url_root
@@ -50,7 +51,7 @@ class OdooAPI(http.Controller):
             user["result"]["session_id"] = session_id
             return user["result"]
         except Exception as e:
-            return self._error_response(401, e, "Invalid credentials.")
+            raise werkzeug.exceptions.Unauthorized("Invalid credentials.")
 
     @http.route(
         '/object/<string:model>/<string:function>',
@@ -63,7 +64,7 @@ class OdooAPI(http.Controller):
             result = getattr(model, function)(*args, **kwargs)
             return result
         except (ModelException, ObjectException) as e:
-            return self._error_response(404, e)
+            raise werkzeug.exceptions.NotFound(str(e))
 
     @http.route(
         '/object/<string:model>/<int:rec_id>/<string:function>',
@@ -76,7 +77,7 @@ class OdooAPI(http.Controller):
             result = getattr(obj, function)(*args, **kwargs)
             return result
         except (ModelException, ObjectException) as e:
-            return self._error_response(404, e)
+            raise werkzeug.exceptions.NotFound(str(e))
 
     @http.route(
         '/report/<int:rec_id>',
@@ -89,7 +90,7 @@ class OdooAPI(http.Controller):
             content, _ = getattr(obj, 'render_qweb_pdf')(res_ids, data)
             return base64.b64encode(content)
         except (ModelException, ObjectException) as e:
-            return self._error_response(404, e)
+            raise werkzeug.exceptions.NotFound(str(e))
 
     @http.route(
         '/api/<string:model>',
@@ -125,7 +126,7 @@ class OdooAPI(http.Controller):
                 serializer = Serializer(records, query, many=True)
                 data = serializer.data
             except (SyntaxError, QueryFormatError) as e:
-                return self._error_response(400, e)
+                raise werkzeug.exceptions.NotFound(str(e))
 
             res = {
                 "count": len(records),
@@ -138,7 +139,7 @@ class OdooAPI(http.Controller):
             return self._response(res)
 
         except (ModelException, ObjectException) as e:
-            return self._error_response(404, e)
+            raise werkzeug.exceptions.NotFound(str(e))
 
     @http.route(
         '/api/<string:model>/<int:rec_id>',
@@ -150,9 +151,9 @@ class OdooAPI(http.Controller):
             serializer = Serializer(obj, query)
             return self._response(serializer.data)
         except (SyntaxError, QueryFormatError) as e:
-            return self.error_response(400, e)
+            raise werkzeug.exceptions.BadRequest(str(e))
         except (ModelException, ObjectException) as e:
-            return self.error_response(404, e)
+            raise werkzeug.exceptions.NotFound(str(e))
 
     @http.route(
         '/api/<string:model>/',
@@ -162,13 +163,13 @@ class OdooAPI(http.Controller):
             data = post['data']
         except KeyError as e:
             msg = "`data` parameter is not found on POST request body"
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.BadRequest(msg)
 
         try:
             model_to_post = request.env[model]
         except KeyError as e:
             msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.BadRequest(msg)
 
         # TODO: Handle data validation
 
@@ -188,13 +189,13 @@ class OdooAPI(http.Controller):
             data = post['data']
         except KeyError as e:
             msg = "`data` parameter is not found on PUT request body"
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.BadRequest(msg)
 
         try:
             model_to_put = request.env[model]
         except KeyError as e:
             msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.BadRequest(msg)
 
         if "context" in post:
             # TODO: Handle error raised by `ensure_one`
@@ -249,13 +250,13 @@ class OdooAPI(http.Controller):
             data = post['data']
         except KeyError as e:
             msg = "`data` parameter is not found on PUT request body"
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.BadRequest(msg)
 
         try:
             model_to_put = request.env[model]
         except KeyError as e:
             msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.BadRequest(msg)
 
         # TODO: Handle errors on filter
         filters = post["filter"]
@@ -316,7 +317,7 @@ class OdooAPI(http.Controller):
             model_to_del_rec = request.env[model]
         except KeyError as e:
             msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.NotFound(msg)
 
         # TODO: Handle error raised by `ensure_one`
         rec = model_to_del_rec.browse(rec_id).ensure_one()
@@ -328,7 +329,7 @@ class OdooAPI(http.Controller):
             }
             return self.response(res)
         except Exception as e:
-            return self.error_response(e)
+            return self._error_response(e, str(e), 500)
 
     # This is for bulk deletion
     @http.route(
@@ -339,7 +340,7 @@ class OdooAPI(http.Controller):
             model_to_del_rec = request.env[model]
         except KeyError as e:
             msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.NotFound(str(e))
 
         # TODO: Handle error raised by `filters`
         filters = json.loads(post["filter"])
@@ -352,7 +353,7 @@ class OdooAPI(http.Controller):
             }
             return self.response(res)
         except Exception as e:
-            return self.error_response(e)
+            return self._error_response(e, str(e), status=500)
 
     @http.route(
         '/api/<string:model>/<int:rec_id>/<string:field>',
@@ -362,16 +363,17 @@ class OdooAPI(http.Controller):
             request.env[model]
         except KeyError as e:
             msg = f"The model `{model}` does not exist."
-            return self.error_response(e, msg)
+            raise werkzeug.exceptions.NotFound(msg)
 
         try:
             rec = request.env[model].browse(rec_id).ensure_one()
             src = getattr(rec, field).decode("utf-8") if rec.exists() else False
             return http.Response(src)
         except Exception as e:
-            return self.error_response(e)
+            raise werkzeug.exceptions.InternalServerError(str(e))
 
-    def _get_model(self, model):
+    @staticmethod
+    def _get_model(model):
         try:
             return request.env[model]
         except KeyError as e:
@@ -387,23 +389,6 @@ class OdooAPI(http.Controller):
         except ValueError as e:
             msg = f"The object '{id}' of '{model}' is not single."
             raise ObjectException(msg, id)
-
-    def _error_response(self, status, e: Exception, msg: str = None):
-        res = {
-            "jsonrpc": "2.0",
-            "id": None,
-            "error": {
-                "message": msg or str(e),
-                "data": {
-                    "name": str(e),
-                    "debug": "",
-                    "message": msg,
-                    "arguments": list(e.args),
-                    "exception_type": type(e).__name__
-                }
-            }
-        }
-        return self._response(res, status=status)
 
     @staticmethod
     def _response(res: dict, status=200):
