@@ -4,20 +4,18 @@ import math
 import logging
 import requests
 
-from odoo import http, _, exceptions
-from odoo.http import request
+from odoo import http, exceptions, _
+from odoo.http import request, HttpRequest, Root
 
 from .serializers import Serializer
 from .exceptions import QueryFormatError
-
 
 _logger = logging.getLogger(__name__)
 
 
 def error_response(error, msg):
     return {
-        "jsonrpc": "2.0",
-        "id": None,
+
         "error": {
             "code": 200,
             "message": msg,
@@ -30,6 +28,19 @@ def error_response(error, msg):
             }
         }
     }
+
+
+ori_get_request = Root.get_request
+
+
+def get_request(self, httprequest):
+    if httprequest.full_path == '/rest/?':
+        return HttpRequest(httprequest)
+    else:
+        return ori_get_request(self, httprequest)
+
+
+Root.get_request = get_request
 
 
 class OdooAPI(http.Controller):
@@ -57,8 +68,8 @@ class OdooAPI(http.Controller):
         return res
 
     @http.route(
-        '/object/<string:model>/<string:function>',
-        type='json', auth='user', methods=["POST"], csrf=False)
+        '/rest/object/<string:model>/<string:function>',
+        type='http', auth='user', methods=["POST"], csrf=False)
     def call_model_function(self, model, function, **post):
         args = []
         kwargs = {}
@@ -71,8 +82,8 @@ class OdooAPI(http.Controller):
         return result
 
     @http.route(
-        '/object/<string:model>/<int:rec_id>/<string:function>',
-        type='json', auth='user', methods=["POST"], csrf=False)
+        '/rest/object/<string:model>/<int:rec_id>/<string:function>',
+        type='http', auth='user', methods=["POST"], csrf=False)
     def call_obj_function(self, model, rec_id, function, **post):
         args = []
         kwargs = {}
@@ -85,7 +96,7 @@ class OdooAPI(http.Controller):
         return result
 
     @http.route(
-        '/api/<string:model>',
+        '/rest/<string:model>',
         type='http', auth='user', methods=['GET'], csrf=False)
     def get_model_data(self, model, **params):
         try:
@@ -121,19 +132,19 @@ class OdooAPI(http.Controller):
         if "page_size" in params:
             page_size = int(params["page_size"])
             count = len(records)
-            total_page_number = math.ceil(count/page_size)
+            total_page_number = math.ceil(count / page_size)
 
             if "page" in params:
                 current_page = int(params["page"])
             else:
                 current_page = 1  # Default page Number
-            start = page_size*(current_page-1)
-            stop = current_page*page_size
+            start = page_size * (current_page - 1)
+            stop = current_page * page_size
             records = records[start:stop]
-            next_page = current_page+1 \
+            next_page = current_page + 1 \
                 if 0 < current_page + 1 <= total_page_number \
                 else None
-            prev_page = current_page-1 \
+            prev_page = current_page - 1 \
                 if 0 < current_page - 1 <= total_page_number \
                 else None
 
@@ -167,7 +178,7 @@ class OdooAPI(http.Controller):
         )
 
     @http.route(
-        '/api/<string:model>/<int:rec_id>',
+        '/rest/<string:model>/<int:rec_id>',
         type='http', auth='user', methods=['GET'], csrf=False)
     def get_model_rec(self, model, rec_id, **params):
         try:
@@ -207,8 +218,8 @@ class OdooAPI(http.Controller):
         )
 
     @http.route(
-        '/api/<string:model>/',
-        type='json', auth="user", methods=['POST'], csrf=False)
+        '/rest/<string:model>/',
+        type='http', auth="user", methods=['POST'], csrf=False)
     def post_model_data(self, model, **post):
         try:
             data = post['data']
@@ -233,8 +244,8 @@ class OdooAPI(http.Controller):
 
     # This is for single record update
     @http.route(
-        '/api/<string:model>/<int:rec_id>/',
-        type='json', auth="user", methods=['PUT'], csrf=False)
+        '/rest/<string:model>/<int:rec_id>/',
+        type='http', auth="user", methods=['PUT'], csrf=False)
     def put_model_record(self, model, rec_id, **post):
         try:
             data = post['data']
@@ -250,7 +261,7 @@ class OdooAPI(http.Controller):
 
         if "context" in post:
             # TODO: Handle error raised by `ensure_one`
-            rec = model_to_put.with_context(**post["context"])\
+            rec = model_to_put.with_context(**post["context"]) \
                 .browse(rec_id).ensure_one()
         else:
             rec = model_to_put.browse(rec_id).ensure_one()
@@ -295,8 +306,8 @@ class OdooAPI(http.Controller):
 
     # This is for bulk update
     @http.route(
-        '/api/<string:model>/',
-        type='json', auth="user", methods=['PUT'], csrf=False)
+        '/rest/<string:model>/',
+        type='http', auth="user", methods=['PUT'], csrf=False)
     def put_model_records(self, model, **post):
         try:
             data = post['data']
@@ -314,7 +325,7 @@ class OdooAPI(http.Controller):
         filters = post["filter"]
 
         if "context" in post:
-            recs = model_to_put.with_context(**post["context"])\
+            recs = model_to_put.with_context(**post["context"]) \
                 .search(filters)
         else:
             recs = model_to_put.search(filters)
@@ -363,9 +374,9 @@ class OdooAPI(http.Controller):
 
     # This is for deleting one record
     @http.route(
-        '/api/<string:model>/<int:rec_id>/',
+        '/rest/<string:model>/<int:rec_id>/',
         type='http', auth="user", methods=['DELETE'], csrf=False)
-    def delete_model_record(self, model,  rec_id, **post):
+    def delete_model_record(self, model, rec_id, **post):
         try:
             model_to_del_rec = request.env[model]
         except KeyError as e:
@@ -400,7 +411,7 @@ class OdooAPI(http.Controller):
 
     # This is for bulk deletion
     @http.route(
-        '/api/<string:model>/',
+        '/rest/<string:model>/',
         type='http', auth="user", methods=['DELETE'], csrf=False)
     def delete_model_records(self, model, **post):
         filters = json.loads(post["filter"])
@@ -438,9 +449,9 @@ class OdooAPI(http.Controller):
             )
 
     @http.route(
-        '/api/<string:model>/<int:rec_id>/<string:field>',
+        '/rest/<string:model>/<int:rec_id>/<string:field>',
         type='http', auth="user", methods=['GET'], csrf=False)
-    def get_binary_record(self, model,  rec_id, field, **post):
+    def get_binary_record(self, model, rec_id, field, **post):
         try:
             request.env[model]
         except KeyError as e:
