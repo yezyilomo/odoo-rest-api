@@ -44,7 +44,7 @@ cookies = res.cookies
 
 # Example 1
 # Get users
-USERS_URL = 'http://localhost:8069/api/res.users/'
+USERS_URL = 'http://localhost:8069/rest/res.users/'
 
 # This will take time since it retrives all res.users fields
 # You can use query param to fetch specific fields
@@ -61,7 +61,7 @@ print(res.text)
 # Example 2
 # Get products(assuming you have products in you db)
 # Here am using query param to fetch only product id and name(This will be faster)
-USERS_URL = 'http://localhost:8069/api/product.product/'
+USERS_URL = 'http://localhost:8069/rest/product.product/'
 
 # Use query param to fetch only id and name
 params = {'query': '{id, name}'}
@@ -89,7 +89,7 @@ print(res.text)
 
    This parameter is used to dynamically select fields to include on a response. For example if we want to select `id` and `name` fields from `res.users` model here is how we would do it.
 
-   `GET /api/res.users/?query={id, name}`
+   `GET /rest/res.users/?query={id, name}`
 
    ```js
    {
@@ -319,7 +319,7 @@ print(res.text)
 
 ## 2. POST
 
-`POST /api/{model}/`
+`POST /rest/{model}/`
 #### Headers
 * Content-Type: application/json
 #### Parameters 
@@ -518,7 +518,7 @@ Request Body
 
     This is used to filter data to delete. For example
 
-    `DELETE /api/product.template/?filter=[["id", "=", 95]]`
+    `DELETE /rest/product.template/?filter=[["id", "=", 95]]`
 
     Response
 
