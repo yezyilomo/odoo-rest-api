@@ -44,7 +44,7 @@ cookies = res.cookies
 
 # Example 1
 # Get users
-USERS_URL = 'http://localhost:8069/api/res.users/'
+USERS_URL = 'http://localhost:8069/rest/res.users/'
 
 # This will take time since it retrives all res.users fields
 # You can use query param to fetch specific fields
@@ -61,7 +61,7 @@ print(res.text)
 # Example 2
 # Get products(assuming you have products in you db)
 # Here am using query param to fetch only product id and name(This will be faster)
-USERS_URL = 'http://localhost:8069/api/product.product/'
+USERS_URL = 'http://localhost:8069/rest/product.product/'
 
 # Use query param to fetch only id and name
 params = {'query': '{id, name}'}
@@ -83,13 +83,13 @@ print(res.text)
 
 ### Model records: 
 
-`GET /api/{model}/`
+`GET /rest/{model}/`
 #### Parameters 
 * **query (optional):**
 
    This parameter is used to dynamically select fields to include on a response. For example if we want to select `id` and `name` fields from `res.users` model here is how we would do it.
 
-   `GET /api/res.users/?query={id, name}`
+   `GET /rest/res.users/?query={id, name}`
 
    ```js
    {
@@ -113,7 +113,7 @@ print(res.text)
    
    For nested records, for example if we want to select `id`, `name` and `company_id` fields from `res.users` model, but under `company_id` we want to select `name` field only. here is how we would do it.
 
-   `GET /api/res.users/?query={id, name, company_id{name}}`
+   `GET /rest/res.users/?query={id, name, company_id{name}}`
 
    ```js
    {
@@ -143,7 +143,7 @@ print(res.text)
 
    For nested iterable records, for example if we want to select `id`, `name` and `related_products` fields from `product.template` model, but under `related_products` we want to select `name` field only. here is how we would do it.
 
-   `GET /api/product.template/?query={id, name, related_products{name}}`
+   `GET /rest/product.template/?query={id, name, related_products{name}}`
 
    ```js
    {
@@ -175,7 +175,7 @@ print(res.text)
    ```
 
    If you want to fetch all fields except few you can use exclude(-) operator. For example in the case above if we want to fetch all fields except `name` field, here is how we could do it   
-   `GET /api/product.template/?query={-name}`
+   `GET /rest/product.template/?query={-name}`
    
    ```js
    {
@@ -200,7 +200,7 @@ print(res.text)
 
    There is also a wildcard(\*) operator which can be used to fetch all fields, Below is an example which shows how you can fetch all product's fields but under `related_products` field get all fields except `id`.
 
-   `GET /api/product.template/?query={*, related_products{-id}}`
+   `GET /rest/product.template/?query={*, related_products{-id}}`
 
    ```js
    {
@@ -231,7 +231,7 @@ print(res.text)
 
     This is used to filter out data returned. For example if we want to get all products with id ranging from 60 to 70, here's how we would do it.
 
-    `GET /api/product.template/?query={id, name}&filter=[["id", ">", 60], ["id", "<", 70]]`
+    `GET /rest/product.template/?query={id, name}&filter=[["id", ">", 60], ["id", "<", 70]]`
 
     ```js
     {
@@ -257,7 +257,7 @@ print(res.text)
 
     These two allows us to do pagination. Hre page_size is used to specify number of records on a single page and page is used to specify the current page. For example if we want our page_size to be 5 records and we want to fetch data on page 3 here is how we would do it.
 
-    `GET /api/product.template/?query={id, name}&page_size=5&page=3`
+    `GET /rest/product.template/?query={id, name}&page_size=5&page=3`
 
     ```js
     {
@@ -282,7 +282,7 @@ print(res.text)
 
     This is used to limit the number of results returned on a request regardless of pagination. For example
     
-    `GET /api/product.template/?query={id, name}&limit=3`
+    `GET /rest/product.template/?query={id, name}&limit=3`
 
     ```js
     {
@@ -301,13 +301,13 @@ print(res.text)
 
 ### Model record:  
 
-`GET /api/{model}/{id}`
+`GET /rest/{model}/{id}`
 #### Parameters
 * **query (optional):**
 
     Here query parameter works exactly the same as explained before except it selects fields on a single record. For example
 
-    `GET /api/product.template/95/?query={id, name}`
+    `GET /rest/product.template/95/?query={id, name}`
 
     ```js
     {
@@ -319,7 +319,7 @@ print(res.text)
 
 ## 2. POST
 
-`POST /api/{model}/`
+`POST /rest/{model}/`
 #### Headers
 * Content-Type: application/json
 #### Parameters 
@@ -327,7 +327,7 @@ print(res.text)
 
     This is used to pass data to be posted. For example
     
-    `POST /api/product.public.category/`
+    `POST /rest/product.public.category/`
 
     Request Body
 
@@ -345,8 +345,6 @@ print(res.text)
 
     ```js
     {
-        "jsonrpc": "2.0",
-        "id": null,
         "result": 398
     }
     ```
@@ -380,7 +378,7 @@ print(res.text)
 
 ### Model records: 
 
-`PUT /api/{model}/`
+`PUT /rest/{model}/`
 #### Headers
 * Content-Type: application/json
 #### Parameters
@@ -392,7 +390,7 @@ print(res.text)
 
     This is used to filter data to update. For example
 
-    `PUT /api/product.template/`
+    `PUT /rest/product.template/`
 
     Request Body
 
@@ -411,8 +409,6 @@ print(res.text)
 
     ```js
     {
-        "jsonrpc": "2.0",
-        "id": null,
         "result": true
     }
     ```
@@ -451,7 +447,7 @@ print(res.text)
 
     For example here is how you would update `related_product_ids` which is `many2many` field with PUT operations
 
-    `PUT /api/product.template/`
+    `PUT /rest/product.template/`
 
     Request Body
 
@@ -478,15 +474,13 @@ print(res.text)
 
     ```js
     {
-        "jsonrpc": "2.0",
-        "id": null,
         "result": true
     }
     ```
 
 ### Model record: 
 
-`PUT /api/{model}/{id}`
+`PUT /rest/{model}/{id}`
 #### Headers
 * Content-Type: application/json
 #### Parameters
@@ -496,7 +490,7 @@ print(res.text)
 
 All parameters works the same as explained on previous section, what changes is that here they apply to a single record being updated and we don't have filter parameter because `id` of record to be updated is passed on URL as `{id}`. Example to give us an idea of how this works.
 
-`PUT /api/product.template/95/`
+`PUT /rest/product.template/95/`
 
 Request Body
 
@@ -518,13 +512,13 @@ Request Body
 
 ### Model records: 
 
-`DELETE /api/{model}/`
+`DELETE /rest/{model}/`
 #### Parameters
 * **filter (mandatory):**
 
     This is used to filter data to delete. For example
 
-    `DELETE /api/product.template/?filter=[["id", "=", 95]]`
+    `DELETE /rest/product.template/?filter=[["id", "=", 95]]`
 
     Response
 
@@ -539,11 +533,11 @@ Request Body
 
 ### Model records: 
 
-`DELETE /api/{model}/{id}`
+`DELETE /rest/{model}/{id}`
 #### Parameters
 This takes no parameter and we don't have filter parameter because `id` of record to be deleted is passed on URL as `{id}`. Example to give us an idea of how this works.
 
-`DELETE /api/product.template/95/`
+`DELETE /rest/product.template/95/`
 
 Response
 
