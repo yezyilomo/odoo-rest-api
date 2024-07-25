@@ -13,6 +13,10 @@ class Serializer(object):
         self._raw_query = query
         super().__init__()
 
+    @classmethod
+    def fields_get_keys(cls, rec):
+        return rec._fields
+
     def get_parsed_restql_query(self):
         parser = Parser(self._raw_query)
         try:
@@ -38,11 +42,13 @@ class Serializer(object):
 
     @classmethod
     def build_flat_field(cls, rec, field_name):
-        all_fields = rec.fields_get()
+        all_fields = cls.fields_get_keys(rec)
         if field_name not in all_fields:
             msg = "'%s' field is not found" % field_name
             raise LookupError(msg)
-        field_type = rec.fields_get(field_name).get(field_name).get('type')
+
+        field = all_fields.get(field_name, None)
+        field_type = getattr(field, 'type', None)
         if field_type in ['one2many', 'many2many']:
             return {
                 field_name: [record.id for record in rec[field_name]]
@@ -63,16 +69,19 @@ class Serializer(object):
             }
         elif field_type == "binary" and isinstance(rec[field_name], bytes) and rec[field_name]:
             return {field_name: rec[field_name].decode("utf-8")}
+        elif field_type == "binary" and isinstance(rec[field_name], bytes) and not rec[field_name]:
+            return {field_name: False}
         else:
             return {field_name: rec[field_name]}
 
     @classmethod
     def build_nested_field(cls, rec, field_name, nested_parsed_query):
-        all_fields = rec.fields_get()
+        all_fields = cls.fields_get_keys(rec)
         if field_name not in all_fields:
             msg = "'%s' field is not found" % field_name
             raise LookupError(msg)
-        field_type = rec.fields_get(field_name).get(field_name).get('type')
+        field = all_fields.get(field_name, None)
+        field_type = getattr(field, 'type', None)
         if field_type in ['one2many', 'many2many']:
             return {
                 field_name: [
@@ -100,7 +109,7 @@ class Serializer(object):
         # is used to store nested fields when the exclude operator(-) is used
         if parsed_query["exclude"]:
             # Exclude fields from a query
-            all_fields = rec.fields_get()
+            all_fields = cls.fields_get_keys(rec)
             for field in parsed_query["include"]:
                 if field == "*":
                     continue
@@ -122,7 +131,7 @@ class Serializer(object):
             # is empty which means the exclude operator(-) is not used,
             # so self.parsed_restql_query["include"] contains only fields
             # to include
-            all_fields = rec.fields_get()
+            all_fields = cls.fields_get_keys(rec)
             if "*" in parsed_query['include']:
                 # Include all fields
                 parsed_query['include'] = filter(
@@ -143,6 +152,7 @@ class Serializer(object):
                         data.update(built_nested_field)
                 else:
                     flat_field = cls.build_flat_field(rec, field)
+
                     data.update(flat_field)
         else:
             # The query is empty i.e query={}
