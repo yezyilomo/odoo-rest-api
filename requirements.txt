@@ -1,1 +1,4 @@
 pypeg2
+requests
+flask
+pyjwt
