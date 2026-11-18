@@ -60,6 +60,10 @@ class OdooAPI(http.Controller):
         '/object/<string:model>/<string:function>',
         type='json', auth='user', methods=["POST"], csrf=False)
     def call_model_function(self, model, function, **post):
+        if function.startswith("_") or function == "init":
+            raise exceptions.AccessError(
+                _("Private methods cannot be called remotely.")
+            )
         args = []
         kwargs = {}
         if "args" in post:
@@ -74,6 +78,10 @@ class OdooAPI(http.Controller):
         '/object/<string:model>/<int:rec_id>/<string:function>',
         type='json', auth='user', methods=["POST"], csrf=False)
     def call_obj_function(self, model, rec_id, function, **post):
+        if function.startswith("_") or function == "init":
+            raise exceptions.AccessError(
+                _("Private methods cannot be called remotely.")
+            )
         args = []
         kwargs = {}
         if "args" in post:
